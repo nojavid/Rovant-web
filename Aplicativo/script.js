@@ -306,8 +306,9 @@ function abrirOpcionesEstado(t, tarjeta) {
     const nuevo = btn.dataset.estado;
     if (nuevo === t.clave) return cerrarOpcionesEstado();
     btn.disabled = true;
+    RovantTareasNoti.marcarPropio();
     const { error } = await supabaseClient.from("tareas_rovant")
-      .update({ estado: nuevo, updated_at: new Date().toISOString() }).eq("id", t.id);
+      .update({ estado: nuevo, ...RovantTareasNoti.autor(), updated_at: new Date().toISOString() }).eq("id", t.id);
     if (error) {
       console.warn("No se pudo cambiar el estado:", error.message);
       btn.disabled = false;

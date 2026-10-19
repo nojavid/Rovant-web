@@ -3,9 +3,12 @@
    GET  /apk/<archivo>.apk   -> descarga pública (adjunto)
    PUT  /apk/<archivo>.apk   -> subida (solo usuarios de Rovant)
    DELETE /apk/<archivo>.apk -> eliminar (solo usuarios de Rovant)
+   POST /push/subscribe | /push/unsubscribe | /notify  -> ver push.js
    Bindings: BUCKET (R2). Variables: SUPABASE_URL, SUPABASE_ANON_KEY,
    ALLOWED_ORIGINS (opcional, separados por coma; por defecto "*")
    ============================================================ */
+import { guardarSuscripcion, quitarSuscripcion, procesarWebhook } from "./push.js";
+
 const MAX_BYTES = 50 * 1024 * 1024;
 const NOMBRE_VALIDO = /^[A-Za-z0-9._-]{1,200}\.apk$/;
 
@@ -15,7 +18,7 @@ function cors(req, env) {
   const ok = permitidos.includes("*") || permitidos.includes(origen);
   return {
     "Access-Control-Allow-Origin": ok ? (permitidos.includes("*") ? "*" : origen) : permitidos[0],
-    "Access-Control-Allow-Methods": "GET, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, PUT, DELETE, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, X-User-Id",
     "Access-Control-Expose-Headers": "Content-Disposition, Content-Length",
     "Vary": "Origin"
@@ -42,6 +45,25 @@ export default {
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: h });
 
     const url = new URL(req.url);
+
+    // ----- Web Push (notificaciones en segundo plano) -----
+    if (url.pathname === "/notify" && req.method === "POST") {
+      if (!env.WEBHOOK_SECRET || req.headers.get("x-webhook-secret") !== env.WEBHOOK_SECRET) return json({ error: "No autorizado" }, 401, h);
+      const ev = await req.json().catch(() => null);
+      if (!ev || !ev.table) return json({ error: "Evento inválido" }, 400, h);
+      const enviados = await procesarWebhook(env, ev);
+      return json({ ok: true, enviados }, 200, h);
+    }
+    if ((url.pathname === "/push/subscribe" || url.pathname === "/push/unsubscribe") && req.method === "POST") {
+      const uid = req.headers.get("X-User-Id");
+      if (!(await usuarioValido(uid, env))) return json({ error: "No autorizado" }, 401, h);
+      const body = await req.json().catch(() => ({}));
+      const res = url.pathname === "/push/subscribe"
+        ? await guardarSuscripcion(env, uid, body.subscription)
+        : await quitarSuscripcion(env, uid, body.endpoint || "");
+      return json(res, res.ok ? 200 : 400, h);
+    }
+
     const m = url.pathname.match(/^\/apk\/([^/]+)$/);
     if (!m) return json({ error: "No encontrado" }, 404, h);
     const nombre = decodeURIComponent(m[1]);

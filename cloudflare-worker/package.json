@@ -1,0 +1,8 @@
+{
+  "name": "rovant-apk-worker",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@block65/webcrypto-web-push": "latest"
+  }
+}

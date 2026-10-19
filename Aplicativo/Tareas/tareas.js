@@ -114,59 +114,13 @@ function suscribirTiempoReal() {
 
 async function refrescar() {
   try {
-    const antes = TAREAS;
     await cargarTareas();
     aviso(""); renderTablero();
-    notificarCambios(antes, TAREAS);
   } catch (e) { errorDb(e); }
 }
 
-/* ---------- Notificaciones (solo si el miembro las activó en Configuración) ---------- */
-let notiActivas = false;
-let ultimaAccionPropia = 0;
-const marcarPropio = () => { ultimaAccionPropia = Date.now(); };
-
-async function cargarPreferenciaNoti() {
-  const u = usuarioSesion();
-  if (!u || !u.id) return;
-  const { data } = await supabaseClient.from("configuracion_usuario")
-    .select("*").eq("user_id", u.id).maybeSingle();
-  const pref = (data && data.notificaciones) || RovantAvisos.prefNoti(u.id);
-  notiActivas = pref === "Sí" && RovantAvisos.permisoConcedido();
-}
-
-function notificarCambios(antes, ahora) {
-  if (!notiActivas || !antes.length && !ahora.length) return;
-  const yo = String((usuarioSesion() || {}).id);
-  const mias = t => t.av.some(a => String(a) === yo);
-  const propio = Date.now() - ultimaAccionPropia < 4000;
-  const avisos = [];
-  const nombreCol = e => (COLUMNAS.find(c => c.estado === e) || {}).nombre || e;
-
-  ahora.forEach(t => {
-    const a = antes.find(x => x.id === t.id);
-    if (!a) {
-      if (!propio && mias(t)) avisos.push(["Nueva tarea para ti", t.t]);
-      return;
-    }
-    // comentarios de otras personas en tareas mías
-    if (mias(t)) {
-      t.com.filter(c => !a.com.some(x => x.id === c.id) && String(c.uid) !== yo)
-        .forEach(c => avisos.push([`${c.n} comentó en "${t.t}"`, c.txt]));
-    }
-    if (propio) return;
-    if (mias(t) && !mias(a)) avisos.push(["Te asignaron una tarea", t.t]);
-    else if (mias(t)) {
-      if (t.e !== a.e) avisos.push([`Tarea movida a ${nombreCol(t.e)}`, t.t]);
-      else if (t.p !== a.p) avisos.push(["Cambió la prioridad", `${t.t}: ${t.p}`]);
-      else if (t.t !== a.t || t.f !== a.f || t.d !== a.d || t.tag !== a.tag) avisos.push(["Tarea actualizada", t.t]);
-    }
-  });
-  if (!propio) antes.filter(a => mias(a) && !ahora.some(t => t.id === a.id))
-    .forEach(a => avisos.push(["Tarea eliminada", a.t]));
-
-  avisos.slice(0, 3).forEach(([t, b]) => RovantAvisos.notificar(t, b));
-}
+/* ---------- Notificaciones: las gestiona ../notif-tareas.js ---------- */
+const marcarPropio = () => RovantTareasNoti.marcarPropio();
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -268,7 +222,7 @@ function inicializarArrastre() {
       renderTablero();
       marcarPropio();
       supabaseClient.from("tareas_rovant")
-        .update({ estado: t.e, updated_at: new Date().toISOString() }).eq("id", t.id)
+        .update({ estado: t.e, ...RovantTareasNoti.autor(), updated_at: new Date().toISOString() }).eq("id", t.id)
         .then(({ error }) => { if (error) { t.e = previo; renderTablero(); errorDb(error); } });
       return;
     }
@@ -510,7 +464,7 @@ function inicializarModal() {
     if (editando) {
       marcarPropio();
       const { error } = await supabaseClient.from("tareas_rovant")
-        .update({ asignados: borrador.av, updated_at: new Date().toISOString() }).eq("id", borrador.id);
+        .update({ asignados: borrador.av, ...RovantTareasNoti.autor(), updated_at: new Date().toISOString() }).eq("id", borrador.id);
       if (error) return errorDb(error);
       const t = TAREAS.find(x => x.id === borrador.id);
       if (t) t.av = [...borrador.av];
@@ -575,12 +529,12 @@ function inicializarModal() {
     try {
       if (editando) {
         const { error } = await supabaseClient.from("tareas_rovant")
-          .update({ ...campos, updated_at: new Date().toISOString() }).eq("id", borrador.id);
+          .update({ ...campos, ...RovantTareasNoti.autor(), updated_at: new Date().toISOString() }).eq("id", borrador.id);
         if (error) throw error;
       } else {
         const u = usuarioSesion() || {};
         const { data, error } = await supabaseClient.from("tareas_rovant")
-          .insert({ ...campos, creado_por: u.id || null }).select().single();
+          .insert({ ...campos, ...RovantTareasNoti.autor(), creado_por: u.id || null }).select().single();
         if (error) throw error;
         if (borrador.com.length) {
           await supabaseClient.from("comentarios_tarea").insert(borrador.com.map(c => ({
@@ -684,7 +638,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     await cargarEquipo();
     renderHeaderUsuario();
-    await cargarPreferenciaNoti();
     await cargarTareas();
     renderTablero();
   } catch (e) { errorDb(e); }

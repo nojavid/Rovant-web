@@ -6,7 +6,7 @@
 // está sin conexión (o si la red tarda demasiado).
 // ============================
 
-const CACHE_NAME = 'rovant-cache-v1';
+const CACHE_NAME = 'rovant-cache-v2';
 
 // Archivos mínimos para que la app abra sin conexión.
 // Se cachean la primera vez que se visitan con red disponible.
@@ -99,4 +99,38 @@ self.addEventListener('fetch', (event) => {
         });
       })
   );
+});
+
+
+// ============================
+// NOTIFICACIONES PUSH (segundo plano)
+// ============================
+self.addEventListener('push', (event) => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; } catch (e) { d = { title: 'Rovant', body: event.data ? event.data.text() : '' }; }
+
+  event.waitUntil((async () => {
+    await self.registration.showNotification(d.title || 'Rovant', {
+      body: d.body || '',
+      icon: new URL('Iconos/Logo.png', self.registration.scope).href,
+      badge: new URL('Iconos/Logo.png', self.registration.scope).href,
+      tag: d.tag || undefined,
+      data: { url: d.url || 'Aplicativo/Aplicativo.html' }
+    });
+    // Si hay una pestaña abierta, que reproduzca el sonido de aviso
+    const abiertas = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    abiertas.forEach((c) => c.postMessage({ type: 'rovant-push' }));
+  })());
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const destino = new URL((event.notification.data && event.notification.data.url) || 'Aplicativo/Aplicativo.html', self.registration.scope).href;
+  event.waitUntil((async () => {
+    const abiertas = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of abiertas) {
+      if ('focus' in c) { await c.focus(); if ('navigate' in c) { try { await c.navigate(destino); } catch (e) { /* ignorar */ } } return; }
+    }
+    if (self.clients.openWindow) await self.clients.openWindow(destino);
+  })());
 });

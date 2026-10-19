@@ -647,6 +647,13 @@ modalSave.addEventListener('click', async () => {
             );
           } else {
             RovantAvisos.notificar('Rovant', 'Las notificaciones están activadas.');
+            try {
+              await RovantPush.activar();
+              sessionStorage.setItem('rovant_push_ok', '1');
+            } catch (e) {
+              console.warn('Push en segundo plano no disponible:', e.message);
+              mostrarAviso('Aviso en segundo plano no disponible', 'Las notificaciones funcionan con la web abierta, pero no se pudo activar el aviso con el navegador cerrado: ' + e.message);
+            }
           }
         }
       }
@@ -656,6 +663,7 @@ modalSave.addEventListener('click', async () => {
         { onConflict: 'user_id' }
       );
       RovantAvisos.setPrefNoti(sesion.id, valor);   // respaldo local
+      if (valor === 'No') RovantPush.desactivar();
       if (error) { console.warn('Error guardando notificaciones:', error.message); mostrarAviso('Guardado solo en este dispositivo', 'No se pudo guardar en tu cuenta (' + error.message + '). Tu preferencia funciona aquí, pero no se sincronizará con otros dispositivos hasta que se agregue la columna en Supabase.'); }
 
       const pill = document.querySelector('.card-3 .row[data-action="notificaciones"] .pill');
