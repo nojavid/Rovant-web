@@ -52,7 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log("3. Respuesta de Supabase:", data);
 
       if (data && data.file_path) {
-        const url = supabaseClient.storage.from('apks').getPublicUrl(data.file_path).data.publicUrl;
+        await cargarR2Config();
+        const url = urlDescargaApk(data.file_path, data.file_name);
         console.log("4. Enlace generado:", url);
         
         // Inicia la descarga abriendo el enlace en la misma ventana

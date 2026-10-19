@@ -1,0 +1,14 @@
+name = "rovant-apk"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "rovant-apk"
+
+[vars]
+SUPABASE_URL = "https://dvqvzefcxazlgkhsosed.supabase.co"
+# Clave publishable (la misma de Login/config.js)
+SUPABASE_ANON_KEY = "sb_publishable_Q9VtQm75X_BvBS5e3Slm_g_Jjtt3PWh"
+# Dominios autorizados (separados por coma). Cámbialo por tu dominio real.
+ALLOWED_ORIGINS = "*"

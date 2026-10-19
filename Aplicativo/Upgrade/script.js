@@ -152,6 +152,7 @@ async function cargarHistorialVersiones() {
     if (error) throw error;
 
     todasLasVersiones = versiones || [];
+    await cargarR2Config().catch(e => console.warn(e.message));
     renderizarTablaVersiones(todasLasVersiones);
 
   } catch (error) {
@@ -183,7 +184,7 @@ function renderizarTablaVersiones(versiones) {
     const currentLabel = isActive ? '<span class="version-current">Versión actual</span>' : '';
 
     const avatarSrc = obtenerAvatar(index);
-    const publicUrl = supabaseClient.storage.from('apks').getPublicUrl(v.file_path).data.publicUrl;
+    const publicUrl = urlDescargaApk(v.file_path, v.file_name);
 
     return `
       <tr>
@@ -393,7 +394,7 @@ async function procesarSubidaAPK(archivo) {
   // -------------------------
 
   const timestamp = Date.now();
-  const nombreLimpio = archivo.name.replace(/[^a-zA-Z0-9.]/g, '_');
+  const nombreLimpio = archivo.name.replace(/[^a-zA-Z0-9.-]/g, '_');
   const rutaArchivo = `${timestamp}_${nombreLimpio}`;
   
   const matchVersion = archivo.name.match(/v?\d+\.\d+(\.\d+)?/);
@@ -403,8 +404,21 @@ async function procesarSubidaAPK(archivo) {
     const dropzone = document.getElementById('dropzone');
     if (dropzone) dropzone.querySelector('.dz-title').textContent = 'Subiendo APK... (Espera)';
     
-    const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('apks').upload(rutaArchivo, archivo, { cacheControl: '3600', upsert: false });
-    if (uploadError) throw uploadError;
+    // Subida a Cloudflare R2 a través del Worker (URL leída de Supabase)
+    await cargarR2Config();
+    const userId = (user && user.id) || (usuarioActual && usuarioActual.id) || '';
+    if (!userId) throw new Error('No se encontró tu sesión. Cierra sesión y vuelve a entrar.');
+    const resp = await fetch(`${R2_WORKER_URL}/apk/${encodeURIComponent(rutaArchivo)}`, {
+      method: 'PUT',
+      headers: { 'X-User-Id': String(userId), 'Content-Type': 'application/vnd.android.package-archive' },
+      body: archivo
+    });
+    if (!resp.ok) {
+      let msg = 'No se pudo subir el APK (' + resp.status + ')';
+      try { msg = (await resp.json()).error || msg; } catch (e) { /* ignorar */ }
+      throw new Error(msg);
+    }
+    const uploadData = { path: 'r2/' + rutaArchivo };
 
     const { error: dbError } = await supabaseClient.from('apk_versions').insert([{
       version: versionDetectada,

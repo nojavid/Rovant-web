@@ -179,6 +179,8 @@ async function cargarTareasDesdeSupabase() {
     const est = ESTADOS_TAREA[r.estado] || ESTADOS_TAREA.iniciar;
     const esYo = persona && usuarioActual && String(persona.id) === String(usuarioActual.id);
     return {
+      id: r.id,
+      clave: ESTADOS_TAREA[r.estado] ? r.estado : "iniciar",
       nombre: r.titulo,
       estado: est.texto,
       badge: est.badge,
@@ -203,7 +205,7 @@ function renderTareas() {
     filtradas = tareas.filter(t => t.completa);
   } else if (tabActiva === "mis") {
     const yo = usuarioActual ? String(usuarioActual.id) : null;
-    filtradas = tareas.filter(t => yo && t.asignados.includes(yo));
+    filtradas = tareas.filter(t => yo && t.asignados.includes(yo) && !t.completa);
   }
 
   if (filtradas.length === 0) {
@@ -225,7 +227,7 @@ function renderTareas() {
   }
 
   contenedor.innerHTML = filtradas.map(t => `
-    <div class="task-item">
+    <div class="task-item" data-id="${t.id}">
       <div class="task-name-row">
         <span class="task-name">${escHtml(t.nombre)}</span>
         <span class="task-badge ${t.badge}">${t.estado}</span>
@@ -239,6 +241,89 @@ function renderTareas() {
     </div>
   `).join("");
 }
+
+/* ============================================================
+   CAMBIAR ESTADO: mantener presionada una tarea ~2 s
+   Desenfoca la tarjeta (80%) y muestra las opciones de estado
+   ============================================================ */
+const TIEMPO_PRESION = 2000;
+
+function inicializarCambioEstado() {
+  const lista = document.getElementById("taskList");
+  const tarjeta = lista && lista.closest(".right-card");
+  if (!lista || !tarjeta) return;
+
+  let timer = null, origen = null, item = null;
+
+  const cancelar = () => {
+    clearTimeout(timer); timer = null;
+    if (item) item.classList.remove("pressing");
+    item = null; origen = null;
+  };
+
+  lista.addEventListener("pointerdown", e => {
+    const el = e.target.closest(".task-item");
+    if (!el || e.button > 0) return;
+    cancelar();
+    item = el; origen = { x: e.clientX, y: e.clientY };
+    el.classList.add("pressing");
+    const id = el.dataset.id;
+    timer = setTimeout(() => {
+      const t = tareas.find(x => String(x.id) === String(id));
+      cancelar();
+      if (t) abrirOpcionesEstado(t, tarjeta);
+    }, TIEMPO_PRESION);
+  });
+
+  lista.addEventListener("pointermove", e => {
+    if (origen && Math.hypot(e.clientX - origen.x, e.clientY - origen.y) > 10) cancelar();
+  });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(ev => lista.addEventListener(ev, cancelar));
+  lista.addEventListener("contextmenu", e => { if (e.target.closest(".task-item")) e.preventDefault(); });
+}
+
+function abrirOpcionesEstado(t, tarjeta) {
+  cerrarOpcionesEstado();
+  const ov = document.createElement("div");
+  ov.className = "estado-overlay";
+  ov.innerHTML = `
+    <div class="estado-box">
+      <p class="estado-titulo">${escHtml(t.nombre)}</p>
+      <p class="estado-sub">Cambiar estado</p>
+      ${Object.entries(ESTADOS_TAREA).map(([k, v]) => `
+        <button type="button" class="estado-op ${v.badge} ${k === t.clave ? "actual" : ""}" data-estado="${k}">
+          ${v.texto}${k === t.clave ? " ✓" : ""}
+        </button>`).join("")}
+      <button type="button" class="estado-cancelar">Cancelar</button>
+    </div>`;
+  tarjeta.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.add("show"));
+
+  ov.addEventListener("click", async e => {
+    if (e.target === ov || e.target.closest(".estado-cancelar")) return cerrarOpcionesEstado();
+    const btn = e.target.closest(".estado-op");
+    if (!btn) return;
+    const nuevo = btn.dataset.estado;
+    if (nuevo === t.clave) return cerrarOpcionesEstado();
+    btn.disabled = true;
+    const { error } = await supabaseClient.from("tareas_rovant")
+      .update({ estado: nuevo, updated_at: new Date().toISOString() }).eq("id", t.id);
+    if (error) {
+      console.warn("No se pudo cambiar el estado:", error.message);
+      btn.disabled = false;
+      btn.textContent = "Error, intenta de nuevo";
+      return;
+    }
+    cerrarOpcionesEstado();
+    await cargarTareasDesdeSupabase();
+    renderTareas();
+  });
+}
+
+function cerrarOpcionesEstado() {
+  document.querySelectorAll(".estado-overlay").forEach(o => o.remove());
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape") cerrarOpcionesEstado(); });
 
 /* ============================================================
    TABS DE TAREAS
@@ -423,6 +508,7 @@ async function cargarDatosDesdeSupabase() {
     // 6) Tareas y APKs
     await cargarTareasDesdeSupabase();
     renderTareas();
+    inicializarCambioEstado();
     await cargarApksDisponibles();
 
   } catch (err) {
