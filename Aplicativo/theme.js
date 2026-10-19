@@ -43,7 +43,7 @@ const RovantTema = (() => {
     try {
       const u = JSON.parse(sessionStorage.getItem("rovant_user") || "null");
       if (!u || !u.id || typeof supabaseClient === "undefined") return;
-      const { data } = await supabaseClient.from("configuracion_usuario").select("tema").eq("user_id", u.id).maybeSingle();
+      const { data } = await supabaseClient.from("configuracion_usuario").select("*").eq("user_id", u.id).maybeSingle();
       if (data && data.tema && data.tema !== leer()) set(data.tema);
     } catch (e) { /* ignorar */ }
   });

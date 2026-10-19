@@ -130,8 +130,9 @@ async function cargarPreferenciaNoti() {
   const u = usuarioSesion();
   if (!u || !u.id) return;
   const { data } = await supabaseClient.from("configuracion_usuario")
-    .select("notificaciones").eq("user_id", u.id).maybeSingle();
-  notiActivas = !!data && data.notificaciones === "Sí" && RovantAvisos.permisoConcedido();
+    .select("*").eq("user_id", u.id).maybeSingle();
+  const pref = (data && data.notificaciones) || RovantAvisos.prefNoti(u.id);
+  notiActivas = pref === "Sí" && RovantAvisos.permisoConcedido();
 }
 
 function notificarCambios(antes, ahora) {

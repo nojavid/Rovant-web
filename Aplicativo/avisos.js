@@ -9,6 +9,11 @@ const RovantAvisos = (() => {
   const SONIDO_INICIO = "Rovant Inicio Sonido.mp3";
   const FLAG_LOGIN = "rovant_recien_logueado";
 
+  /* ---------- Preferencia de notificaciones (respaldo local por usuario) ---------- */
+  const claveN = id => "rovant_noti_" + id;
+  const prefNoti = id => { try { return localStorage.getItem(claveN(id)); } catch (e) { return null; } };
+  const setPrefNoti = (id, v) => { try { localStorage.setItem(claveN(id), v); } catch (e) { /* ignorar */ } };
+
   function reproducir(archivo) {
     const a = new Audio(urlSonido(archivo));
     const p = a.play();
@@ -49,5 +54,5 @@ const RovantAvisos = (() => {
 
   document.addEventListener("DOMContentLoaded", alIniciarSesion);
 
-  return { permisoConcedido, pedirPermiso, sonarNotificacion, notificar };
+  return { permisoConcedido, pedirPermiso, sonarNotificacion, notificar, prefNoti, setPrefNoti };
 })();

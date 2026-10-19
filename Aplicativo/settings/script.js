@@ -147,6 +147,19 @@ async function guardarAvatar(fileName, fullSrc) {
 /* =========================================================
    7) CARGAR CONFIGURACIÓN GUARDADA
    ========================================================= */
+/* Tema y notificaciones: BD si existe la columna; si no, respaldo local */
+function aplicarPreferenciasLocales(data) {
+  const tema = (data && data.tema) || RovantTema.get();
+  RovantTema.set(tema);
+  const pillTema = document.querySelector('.card-3 .row[data-action="tema"] .pill');
+  if (pillTema) pillTema.textContent = tema;
+
+  const pref = (data && data.notificaciones) || RovantAvisos.prefNoti(sesion.id);
+  const act = pref === 'Sí' && RovantAvisos.permisoConcedido();
+  const pillNoti = document.querySelector('.card-3 .row[data-action="notificaciones"] .pill');
+  if (pillNoti) pillNoti.textContent = act ? 'Sí' : 'No';
+}
+
 async function cargarConfiguracion() {
   if (!sesion || !sesion.id) return;
 
@@ -164,6 +177,7 @@ async function cargarConfiguracion() {
 
     if (!data) {
       console.log('ℹ️ No hay configuración guardada aún');
+      aplicarPreferenciasLocales(null);
       if (sesion.avatar_file) marcarAvatarSeleccionado(sesion.avatar_file);
       return;
     }
@@ -187,18 +201,7 @@ async function cargarConfiguracion() {
       sesion.usuario = data.usuario;
     }
 
-    if (data.tema) {
-      const pill = document.querySelector('.card-3 .row[data-action="tema"] .pill');
-      if (pill) pill.textContent = data.tema;
-      RovantTema.set(data.tema);
-    }
-
-    {
-      // siempre desactivadas salvo que el miembro las haya activado y el navegador lo permita
-      const act = data.notificaciones === 'Sí' && RovantAvisos.permisoConcedido();
-      const pill = document.querySelector('.card-3 .row[data-action="notificaciones"] .pill');
-      if (pill) pill.textContent = act ? 'Sí' : 'No';
-    }
+    aplicarPreferenciasLocales(data);
 
     sessionStorage.setItem('rovant_user', JSON.stringify(sesion));
     console.log('✅ Configuración cargada:', data);
@@ -616,7 +619,7 @@ modalSave.addEventListener('click', async () => {
 
       const pill = document.querySelector('.card-3 .row[data-action="tema"] .pill');
       if (pill) pill.textContent = valor;
-      RovantTema.set(valor);
+      RovantTema.set(valor);   // también queda en localStorage
 
       console.log('✅ Tema actualizado:', valor);
       cerrarModal();
@@ -652,6 +655,7 @@ modalSave.addEventListener('click', async () => {
         { user_id: sesion.id, notificaciones: valor, updated_at: new Date().toISOString() },
         { onConflict: 'user_id' }
       );
+      RovantAvisos.setPrefNoti(sesion.id, valor);   // respaldo local
       if (error) { console.warn('Error guardando notificaciones:', error.message); }
 
       const pill = document.querySelector('.card-3 .row[data-action="notificaciones"] .pill');
