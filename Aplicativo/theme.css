@@ -194,8 +194,13 @@ html[data-theme="dark"] .action-btn { color: #fff; }
 html[data-theme="dark"] .action-btn:hover { color: var(--neon); border-color: var(--neon); }
 html[data-theme="dark"] #tablaVersionesBody td[style] { color: var(--d-muted) !important; }
 
+/* checklist (SVG inline): cuadro azul neón con check oscuro */
+html[data-theme="dark"] .rc-icon-checklist { filter: drop-shadow(0 0 6px rgba(0, 229, 255, .7)); }
+html[data-theme="dark"] .rc-icon-checklist rect { fill: var(--neon); }
+html[data-theme="dark"] .rc-icon-checklist polyline { stroke: #04121C; }
+
 /* ---------- Iconos PNG: negro -> blanco, azul -> neón ---------- */
-html[data-theme="dark"] :is(.row-icon, .rc-icon, .card-icon, .task-meta img:not(.meta-avatar)) {
+html[data-theme="dark"] :is(img.row-icon, img.rc-icon, .card-icon, .task-meta img:not(.meta-avatar)) {
   filter: brightness(0) invert(1);
   opacity: 1;
 }
