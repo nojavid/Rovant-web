@@ -48,6 +48,13 @@
 
 .tareas-main { gap: clamp(10px, 1.6vh, 20px); }
 .tareas-top { display: flex; justify-content: flex-end; }
+/* Separación entre la descripción del header y las columnas del tablero */
+.page-tareas .board { margin-top: clamp(8px, 2.2vh, 28px); }
+
+/* Botón flotante solo en móvil/tablet: por defecto se usa el de escritorio */
+#btnNuevaTarea .mobile-only { display: none; }
+#btnNuevaTarea .desktop-only,
+#btnNuevaTarea .plus { display: inline; }
 
 /* ---------- Botones ---------- */
 .btn-primary {
@@ -201,6 +208,37 @@
 /* ---------- Responsive: siempre las 4 columnas, solo se compacta ---------- */
 @media (max-width: 1100px) {
   .header-title { max-width: none; flex: 1; min-width: 0; }
+
+  /* El botón sale del flujo: el tablero sube y se deja aire bajo la descripción */
+  .page-tareas .board { margin-top: clamp(16px, 3.5vh, 32px); }
+
+  /* Botón "Nueva tarea" como círculo flotante abajo a la derecha */
+  .page-tareas .tareas-top {
+    position: fixed;
+    right: clamp(16px, 3vw, 28px);
+    bottom: calc(clamp(16px, 3vw, 28px) + env(safe-area-inset-bottom, 0px));
+    z-index: 90;
+    pointer-events: none;
+  }
+  .page-tareas #btnNuevaTarea {
+    pointer-events: auto;
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    border-radius: 50%;
+    justify-content: center;
+    gap: 0;
+    box-shadow: 0 8px 20px rgba(12,37,67,.3);
+  }
+  .page-tareas #btnNuevaTarea .desktop-only,
+  .page-tareas #btnNuevaTarea .plus { display: none; }
+  .page-tareas #btnNuevaTarea .mobile-only {
+    display: block;
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 400;
+    transform: translateY(-1px);
+  }
 }
 @media (max-width: 768px) {
   .header-title p { font-size: 9px; line-height: 1.2; }
@@ -217,6 +255,8 @@
 }
 @media (max-width: 480px) {
   .header-title-icon { width: 28px; height: 28px; }
+  .page-tareas #btnNuevaTarea { width: 52px; height: 52px; }
+  .page-tareas #btnNuevaTarea .mobile-only { font-size: 28px; }
   .header .user-text { display: none; }
   .modal-foot { flex-wrap: wrap; }
 }
