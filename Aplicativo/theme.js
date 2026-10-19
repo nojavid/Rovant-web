@@ -44,7 +44,14 @@ const RovantTema = (() => {
       const u = JSON.parse(sessionStorage.getItem("rovant_user") || "null");
       if (!u || !u.id || typeof supabaseClient === "undefined") return;
       const { data } = await supabaseClient.from("configuracion_usuario").select("*").eq("user_id", u.id).maybeSingle();
-      if (data && data.tema && data.tema !== leer()) set(data.tema);
+      if (!data) return;
+      if (data.tema) {
+        if (data.tema !== leer()) set(data.tema);          // la cuenta manda
+      } else if ("tema" in data && leer() !== "Claro") {
+        // la columna existe pero está vacía: sube la preferencia de este dispositivo
+        await supabaseClient.from("configuracion_usuario").upsert(
+          { user_id: u.id, tema: leer(), updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+      }
     } catch (e) { /* ignorar */ }
   });
 

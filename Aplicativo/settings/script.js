@@ -615,7 +615,7 @@ modalSave.addEventListener('click', async () => {
         { user_id: sesion.id, tema: valor, updated_at: new Date().toISOString() },
         { onConflict: 'user_id' }
       );
-      if (error) { console.warn('Error guardando tema:', error.message); }
+      if (error) { console.warn('Error guardando tema:', error.message); mostrarAviso('Guardado solo en este dispositivo', 'No se pudo guardar en tu cuenta (' + error.message + '). Tu preferencia funciona aquí, pero no se sincronizará con otros dispositivos hasta que se agregue la columna en Supabase.'); }
 
       const pill = document.querySelector('.card-3 .row[data-action="tema"] .pill');
       if (pill) pill.textContent = valor;
@@ -656,7 +656,7 @@ modalSave.addEventListener('click', async () => {
         { onConflict: 'user_id' }
       );
       RovantAvisos.setPrefNoti(sesion.id, valor);   // respaldo local
-      if (error) { console.warn('Error guardando notificaciones:', error.message); }
+      if (error) { console.warn('Error guardando notificaciones:', error.message); mostrarAviso('Guardado solo en este dispositivo', 'No se pudo guardar en tu cuenta (' + error.message + '). Tu preferencia funciona aquí, pero no se sincronizará con otros dispositivos hasta que se agregue la columna en Supabase.'); }
 
       const pill = document.querySelector('.card-3 .row[data-action="notificaciones"] .pill');
       if (pill) pill.textContent = valor;

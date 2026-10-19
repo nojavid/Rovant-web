@@ -2,6 +2,7 @@
    Rovant — Worker de Cloudflare para los APKs en R2
    GET  /apk/<archivo>.apk   -> descarga pública (adjunto)
    PUT  /apk/<archivo>.apk   -> subida (solo usuarios de Rovant)
+   DELETE /apk/<archivo>.apk -> eliminar (solo usuarios de Rovant)
    Bindings: BUCKET (R2). Variables: SUPABASE_URL, SUPABASE_ANON_KEY,
    ALLOWED_ORIGINS (opcional, separados por coma; por defecto "*")
    ============================================================ */
@@ -14,7 +15,7 @@ function cors(req, env) {
   const ok = permitidos.includes("*") || permitidos.includes(origen);
   return {
     "Access-Control-Allow-Origin": ok ? (permitidos.includes("*") ? "*" : origen) : permitidos[0],
-    "Access-Control-Allow-Methods": "GET, PUT, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, X-User-Id",
     "Access-Control-Expose-Headers": "Content-Disposition, Content-Length",
     "Vary": "Origin"
@@ -71,6 +72,12 @@ export default {
         httpMetadata: { contentType: "application/vnd.android.package-archive" }
       });
       return json({ ok: true, key: nombre }, 201, h);
+    }
+
+    if (req.method === "DELETE") {
+      if (!(await usuarioValido(req.headers.get("X-User-Id"), env))) return json({ error: "No autorizado" }, 401, h);
+      await env.BUCKET.delete(nombre);
+      return json({ ok: true }, 200, h);
     }
 
     return json({ error: "Método no permitido" }, 405, h);

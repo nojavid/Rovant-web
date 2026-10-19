@@ -674,6 +674,18 @@ body {
   height: 16px;
 }
 
+/* Botón eliminar (bote de basura rojo) */
+.action-btn.action-delete { color: #E53935; border-color: #F4C7C5; background: #FFF5F5; }
+.action-btn.action-delete:hover { background: #FDE1E1; border-color: #E53935; color: #D32F2F; }
+
+.confirm-actions { display: flex; gap: 10px; }
+.confirm-actions .modal-btn { flex: 1; width: auto; }
+.modal-btn-cancel { background: #EEF3FA; color: #333; }
+.modal-btn-cancel:hover { background: #DCE6F4; }
+.modal-btn-danger { background: #E53935; }
+.modal-btn-danger:hover { background: #C62828; }
+.modal-btn:disabled { opacity: .6; cursor: default; }
+
 /* ============================================================
    MODAL PERSONALIZADO Y FONDO DESENFOCADO
    ============================================================ */

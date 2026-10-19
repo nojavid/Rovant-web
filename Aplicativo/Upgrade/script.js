@@ -218,6 +218,9 @@ function renderizarTablaVersiones(versiones) {
             <button class="action-btn" title="Descargar" onclick="window.open('${publicUrl}', '_blank')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             </button>
+            <button class="action-btn action-delete" title="Eliminar" onclick="pedirEliminarApk(${v.id})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </button>
           </div>
         </td>
       </tr>
@@ -303,6 +306,74 @@ function inicializarArrastreMenu() {
   window.addEventListener("mousemove", onMove);
   window.addEventListener("mouseup", onEnd);
 }
+
+/* ============================================================
+   ELIMINAR APK (R2 / Supabase Storage + registro)
+   ============================================================ */
+let apkPorEliminar = null;
+
+function pedirEliminarApk(id) {
+  const v = todasLasVersiones.find(x => String(x.id) === String(id));
+  if (!v) return;
+  apkPorEliminar = v;
+  document.getElementById('confirmDelText').textContent = v.is_active
+    ? `La versión ${v.version} es la APK activa. Si la eliminas, el botón de descarga quedará sin APK hasta que selecciones otra. Esta acción no se puede deshacer.`
+    : `Se eliminará la versión ${v.version} (${v.file_name || 'APK'}). Esta acción no se puede deshacer.`;
+  document.getElementById('confirmDelOverlay').classList.add('show');
+}
+
+function cerrarConfirmEliminar() {
+  apkPorEliminar = null;
+  document.getElementById('confirmDelOverlay').classList.remove('show');
+}
+
+async function eliminarApkConfirmado() {
+  const v = apkPorEliminar;
+  if (!v) return;
+  const btn = document.getElementById('confirmDelOk');
+  btn.disabled = true; btn.textContent = 'Eliminando...';
+  try {
+    // 1) archivo
+    if (v.file_path && v.file_path.startsWith('r2/')) {
+      await cargarR2Config();
+      const user = obtenerUsuarioLogueado();
+      const userId = (user && user.id) || (usuarioActual && usuarioActual.id) || '';
+      if (!userId) throw new Error('No se encontró tu sesión. Cierra sesión y vuelve a entrar.');
+      const resp = await fetch(`${R2_WORKER_URL}/apk/${encodeURIComponent(v.file_path.slice(3))}`, {
+        method: 'DELETE', headers: { 'X-User-Id': String(userId) }
+      });
+      if (!resp.ok) {
+        let msg = 'No se pudo eliminar el archivo (' + resp.status + ')';
+        try { msg = (await resp.json()).error || msg; } catch (e) { /* ignorar */ }
+        throw new Error(msg);
+      }
+    } else if (v.file_path) {
+      const { error: stErr } = await supabaseClient.storage.from('apks').remove([v.file_path]);
+      if (stErr) throw stErr;
+    }
+    // 2) registro
+    const { error: dbErr } = await supabaseClient.from('apk_versions').delete().eq('id', v.id);
+    if (dbErr) throw dbErr;
+
+    cerrarConfirmEliminar();
+    await cargarHistorialVersiones();
+  } catch (error) {
+    console.error('Error al eliminar APK:', error);
+    cerrarConfirmEliminar();
+    mostrarModal('Error al eliminar', error.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Eliminar';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const ok = document.getElementById('confirmDelOk');
+  const cancel = document.getElementById('confirmDelCancel');
+  const ov = document.getElementById('confirmDelOverlay');
+  if (ok) ok.addEventListener('click', eliminarApkConfirmado);
+  if (cancel) cancel.addEventListener('click', cerrarConfirmEliminar);
+  if (ov) ov.addEventListener('click', e => { if (e.target === ov) cerrarConfirmEliminar(); });
+});
 
 /* ============================================================
    LÓGICA PARA SUBIR APK A SUPABASE Y MODAL
