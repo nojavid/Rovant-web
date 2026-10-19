@@ -199,11 +199,28 @@ body {
    CONTENIDO CENTRAL
    ============================================================ */
 .main-content {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(14px, 1.6vh, 24px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: start;
+  gap: clamp(14px, 1.6vh, 24px) clamp(10px, 1vw, 16px);
   min-width: 0;
   grid-column: 2 / -1;
+}
+
+.main-content > * {
+  grid-column: 1 / -1;
+}
+
+/* Título y usuario comparten la primera fila (título pegado arriba) */
+.main-content > .section-header {
+  grid-row: 1;
+  grid-column: 1;
+}
+
+.main-content > .user-info {
+  grid-row: 1;
+  grid-column: 2;
+  align-self: start;
 }
 
 /* ============================================================
@@ -925,7 +942,10 @@ body {
   .section-subtitle {
     font-size: 11px;
   }
-  
+  .subtitle-extra {
+    display: none;
+  }
+
   .versions-header {
     flex-direction: column;
     align-items: flex-start;

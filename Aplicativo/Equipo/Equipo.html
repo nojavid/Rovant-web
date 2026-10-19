@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rovant - Equipo</title>
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="../../Iconos/Logo.png">
+<link rel="stylesheet" href="style.css">
+
+<!-- Cliente de Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="../theme.css">
+<script src="../theme.js"></script>
+</head>
+<body>
+
+  <div class="app-layout">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-drag-handle" id="sidebarDragHandle">
+        <span class="drag-line"></span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="../Aplicativo.html" class="nav-item" data-page="inicio">
+          <img src="../../Iconos/casa.png" alt="Inicio" class="nav-icon">
+          <span class="nav-text">Inicio</span>
+        </a>
+        <a href="../Upgrade/Upgrade.html" class="nav-item" data-page="upgrade">
+          <img src="../../Iconos/ventana.png" alt="Upgrade APK" class="nav-icon">
+          <span class="nav-text">Upgrade APK</span>
+        </a>
+        <a href="../Tareas/Tareas.html" class="nav-item" data-page="tareas">
+          <img src="../../Iconos/tarea.png" alt="Tareas" class="nav-icon">
+          <span class="nav-text">Tareas</span>
+        </a>
+        <a href="Equipo.html" class="nav-item active" data-page="equipo">
+          <img src="../../Iconos/equipo.png" alt="Equipo" class="nav-icon">
+          <span class="nav-text">Equipo</span>
+        </a>
+        <a href="../settings/settings.html" class="nav-item" data-page="setting">
+          <img src="../../Iconos/settings.png" alt="Setting" class="nav-icon">
+          <span class="nav-text">Setting</span>
+        </a>
+        <a href="#" class="nav-item" data-page="cerrar" id="btnCerrarSesion">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span class="nav-text">Cerrar Sesión</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <img src="../../Iconos/Rovant-blanco.png" alt="Rovant" class="footer-logo">
+        <p class="footer-text">Movilidad control y<br>productividad en un solo lugar</p>
+      </div>
+    </aside>
+
+    <!-- ===== CONTENIDO CENTRAL ===== -->
+    <main class="main-content">
+      <div class="user-info" id="userInfoToggle">
+        <img src="../../Iconos/Avatar/avatar1.png" alt="Usuario" class="user-avatar" id="headerAvatar">
+        <div class="user-text">
+          <span class="user-name" id="headerUserName">Cargando...</span>
+          <span class="user-role" id="headerUserRole">...</span>
+        </div>
+        <svg class="user-chevron" id="userChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+
+      <div class="section-header">
+        <img src="../../Iconos/equipo.png" alt="Equipo" class="section-icon">
+        <div class="section-titles">
+          <h1 class="section-title">Equipo</h1>
+          <p class="section-subtitle">Conoce la estructura de tu equipo y sus integrantes</p>
+        </div>
+      </div>
+
+      <div class="team-dashboard">
+        <!-- Estructura -->
+        <section class="panel">
+          <div class="org-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="8" y="2" width="8" height="6" rx="1"/><rect x="2" y="16" width="8" height="6" rx="1"/><rect x="14" y="16" width="8" height="6" rx="1"/>
+                <path d="M12 8v4M6 16v-4h12v4"/>
+              </svg>
+              Estructura del Equipo
+            </div>
+            <div class="dept-filter">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              <select id="filtroDepartamento">
+                <option value="">Todos los departamentos</option>
+              </select>
+            </div>
+          </div>
+          <div class="org-chart" id="orgChart">
+            <div class="org-loading">Cargando equipo...</div>
+          </div>
+        </section>
+
+        <!-- Columna derecha -->
+        <div class="side-col">
+          <section class="panel">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              Resumen del Equipo
+            </div>
+            <div class="summary-total">
+              <div class="big-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="7" r="4"/><path d="M1 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1z"/><path d="M16.5 3.2a4 4 0 0 1 0 7.6 M19 14.3A6 6 0 0 1 23 20v1h-4v-1a8 8 0 0 0-1.5-4.7z"/></svg>
+              </div>
+              <div>
+                <div class="summary-count" id="totalIntegrantes">0</div>
+                <div class="summary-label">Integrantes</div>
+              </div>
+            </div>
+            <div class="summary-row"><span class="dot jefe"></span>Jefes<b id="countJefes">0</b></div>
+            <div class="summary-row"><span class="dot subjefe"></span>Subjefes<b id="countSubjefes">0</b></div>
+            <div class="summary-row"><span class="dot empleado"></span>Empleados<b id="countEmpleados">0</b></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+              </svg>
+              Departamentos
+            </div>
+            <div class="dept-list" id="deptList"></div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="menu-overlay" id="menuOverlay"></div>
+
+  <script src="../../Login/config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

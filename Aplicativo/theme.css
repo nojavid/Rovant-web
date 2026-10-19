@@ -1,0 +1,217 @@
+/* ============================================================
+   TEMA OSCURO NEÓN — se activa con <html data-theme="dark">
+   Negro -> blanco, azules -> cian neón, tarjetas con borde neón
+   ============================================================ */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --neon: #00E5FF;
+  --neon-soft: rgba(0, 229, 255, .22);
+  --neon-glow: 0 0 0 1px rgba(0, 229, 255, .28), 0 0 18px rgba(0, 229, 255, .10);
+  --d-bg: #070B14;
+  --d-surface: #0F1626;
+  --d-surface-2: #151D31;
+  --d-text: #FFFFFF;
+  --d-muted: #A9B4C8;
+
+  --bg-main: var(--d-bg);
+  --sidebar-bg: #050810;
+  --sidebar-active: rgba(0, 229, 255, .16);
+  --sidebar-text: #8A94A8;
+  --card-border: var(--neon);
+  --divider: rgba(0, 229, 255, .18);
+  --blue-accent: #00E5FF;
+  --blue-btn: #00E5FF;
+  --text-gray: #8A94A8;
+  --subtitle-gray: var(--d-muted);
+}
+
+html[data-theme="dark"],
+html[data-theme="dark"] body,
+html[data-theme="dark"] #stage { background-color: var(--d-bg); }
+
+/* ---------- Texto negro -> blanco ---------- */
+html[data-theme="dark"] :is(
+  .welcome, .card-title, .rc-title, .tm-name, .task-name, .meta-text, .header .user-name,
+  .user-name, .section-title, .info-title, .versions-title, .dz-title, .t-name, .panel-title,
+  .node-cargo, .summary-count, .d-name, .title, .row-title, .row-value, .modal-title,
+  .modal-body label, .apk-version, .col-name, .col-count, .ct-title, .modal-head h2,
+  .f-field, .assign-opt, .confirm-text, .com-menu button, .header-title h1,
+  .comment p, .comment b, .size-cell, .date-cell, .summary-row, .summary-row b, .btn-ghost,
+  .ce-btn, .org-loading, .modal-btn-cancel
+) { color: var(--d-text); }
+
+html[data-theme="dark"] :is(
+  .section-subtitle, .subtitle, .row-desc, .modal-subtitle, .modal-text, .aviso-message,
+  .apk-meta, .info-desc, .dz-subtitle, .t-role, .d-count, .node-name, .summary-label,
+  .header-title p, .ct-date, .comment small, .empty-text, .col-empty, .comments-empty,
+  .date-cell span, .row-arrow, .versions-table th, .dz-hint, .empty-state, .org-empty,
+  .modal-body .feedback, .user-handle
+) { color: var(--d-muted); }
+
+html[data-theme="dark"] .user-role,
+html[data-theme="dark"] .tm-role { color: var(--neon); text-shadow: 0 0 8px rgba(0, 229, 255, .6); }
+
+/* ---------- Superficies ---------- */
+html[data-theme="dark"] :is(
+  .card, .right-card, .versions-section, .panel, .modal, .aviso-box, .custom-modal-content,
+  .card-tarea, .com-menu, .rv-popup
+) {
+  background: var(--d-surface);
+  color: var(--d-text);
+  box-shadow: var(--neon-glow);
+  border-color: var(--neon-soft);
+}
+
+html[data-theme="dark"] :is(
+  .apk-dropzone, .apk-info-card, .apk-item, .search-box input, .versions-table th,
+  .dept-filter select, .summary-total, .comment, .f-field input, .f-field select,
+  .modal-body input[type="text"], .modal-body input[type="password"], .comment-edit .ce-input
+) {
+  background-color: var(--d-surface-2);
+  color: var(--d-text);
+  border-color: var(--neon-soft);
+}
+
+html[data-theme="dark"] :is(.col-count, .task-tab, .btn-ghost, .btn-danger, .assign-opt, .ce-btn, .modal-body .option, .action-btn) {
+  background: var(--d-surface-2);
+  border-color: var(--neon-soft);
+}
+html[data-theme="dark"] .modal-body .option,
+html[data-theme="dark"] .task-tab { color: var(--neon); }
+
+html[data-theme="dark"] .apk-item.apk-active { background: rgba(57, 255, 20, .07); border-color: #39FF14; }
+html[data-theme="dark"] .apk-item:hover,
+html[data-theme="dark"] .apk-dropzone:hover,
+html[data-theme="dark"] .apk-dropzone.dragover { border-color: var(--neon); background: rgba(0, 229, 255, .08); }
+html[data-theme="dark"] .apk-dropzone { border-color: rgba(0, 229, 255, .45); }
+
+/* bordes y divisores */
+html[data-theme="dark"] :is(.card-header, .right-card-header, .task-list, .modal-head) { border-color: var(--neon-soft); }
+html[data-theme="dark"] .divider { background-color: var(--neon-soft); }
+html[data-theme="dark"] :is(.versions-table td, .dept-item) { border-color: rgba(0, 229, 255, .12); }
+html[data-theme="dark"] .empty-circle { background: var(--d-surface-2); border-color: var(--neon-soft); color: var(--neon); }
+html[data-theme="dark"] .row.clickable:hover { background: rgba(0, 229, 255, .06); }
+html[data-theme="dark"] .dept-item:hover,
+html[data-theme="dark"] .dept-item.selected { background: rgba(0, 229, 255, .08); }
+html[data-theme="dark"] .com-menu button:hover { background: rgba(0, 229, 255, .10); }
+
+/* ---------- Sidebar ---------- */
+html[data-theme="dark"] .sidebar { box-shadow: 0 0 0 1px rgba(0, 229, 255, .35), 0 0 24px rgba(0, 229, 255, .12); }
+html[data-theme="dark"] .nav-item.active {
+  color: var(--neon);
+  box-shadow: inset 0 0 0 1px var(--neon), 0 0 14px rgba(0, 229, 255, .35);
+}
+html[data-theme="dark"] .nav-item.active .nav-icon {
+  filter: brightness(0) saturate(100%) invert(76%) sepia(78%) saturate(1700%) hue-rotate(147deg) brightness(104%);
+}
+html[data-theme="dark"] .nav-item.active svg.nav-icon { color: var(--neon); filter: none; }
+html[data-theme="dark"] .user-chevron { color: #fff; }
+
+/* ---------- Botones de acento (azul -> neón) ---------- */
+html[data-theme="dark"] :is(
+  .btn-primary, .btn-select-apk, .modal-btn, .modal-btn-save, .aviso-btn,
+  .modal-body .option.selected, .task-tab.active, .assign-opt.on, .ce-ok, .badge-version
+) {
+  background: var(--neon);
+  border-color: var(--neon);
+  color: #04121C;
+  box-shadow: 0 0 16px rgba(0, 229, 255, .55);
+}
+html[data-theme="dark"] .modal-btn-cancel { background: var(--d-surface-2); color: var(--d-text); box-shadow: none; }
+html[data-theme="dark"] .badge-version.active { background: #39FF14; border-color: #39FF14; box-shadow: 0 0 12px rgba(57, 255, 20, .6); }
+html[data-theme="dark"] .aviso-overlay.exito .aviso-btn { background: #39FF14; box-shadow: 0 0 16px rgba(57, 255, 20, .55); }
+html[data-theme="dark"] .btn-select { color: var(--neon); border-color: var(--neon); }
+html[data-theme="dark"] .btn-select:hover { background: rgba(0, 229, 255, .12); }
+html[data-theme="dark"] .btn-selected { background: rgba(57, 255, 20, .10); color: #39FF14; border-color: #39FF14; }
+html[data-theme="dark"] .btn-danger,
+html[data-theme="dark"] .ct-del:hover { color: #FF4D6D; border-color: rgba(255, 77, 109, .5); }
+html[data-theme="dark"] .pill { background: rgba(0, 229, 255, .14); color: var(--neon); box-shadow: inset 0 0 0 1px rgba(0, 229, 255, .45); }
+html[data-theme="dark"] .modal-body input:focus,
+html[data-theme="dark"] .search-box input:focus,
+html[data-theme="dark"] .f-field input:focus,
+html[data-theme="dark"] .f-field select:focus { border-color: var(--neon); box-shadow: 0 0 0 3px rgba(0, 229, 255, .2); }
+html[data-theme="dark"] .aviso-title { color: #FF4D6D; }
+html[data-theme="dark"] .aviso-overlay.exito .aviso-title { color: #39FF14; }
+html[data-theme="dark"] .modal-body .feedback.ok { color: #39FF14; }
+html[data-theme="dark"] .modal-body .feedback.error { color: #FF4D6D; }
+
+/* ---------- Estados / etiquetas ---------- */
+html[data-theme="dark"] .status.active { background: rgba(57, 255, 20, .12); color: #39FF14; }
+html[data-theme="dark"] .status.inactive { background: rgba(255, 255, 255, .08); color: var(--d-muted); }
+html[data-theme="dark"] .version-current { color: #39FF14; }
+html[data-theme="dark"] :is(.tag, .prio) { background: transparent; box-shadow: inset 0 0 0 1px currentColor; }
+html[data-theme="dark"] :is(.tag-Frontend, .tag-Docs, .tag-DevOps) { color: var(--neon); }
+html[data-theme="dark"] :is(.tag-Backend, .prio-baja) { color: #39FF14; }
+html[data-theme="dark"] .tag-QA { color: #BF40FF; }
+html[data-theme="dark"] :is(.tag-Security, .prio-alta) { color: #FF4D6D; }
+html[data-theme="dark"] .tag-Diseño { color: #FF4FD8; }
+html[data-theme="dark"] .prio-media { color: #FFD60A; }
+html[data-theme="dark"] .avatars .more { background: var(--d-surface-2); color: var(--neon); }
+html[data-theme="dark"] .aviso { background: rgba(0, 229, 255, .10); color: var(--neon); }
+html[data-theme="dark"] .aviso-error { background: rgba(255, 77, 109, .12); color: #FF4D6D; }
+
+/* ---------- Tablero de tareas ---------- */
+html[data-theme="dark"] .col { --c: #00E5FF; }
+html[data-theme="dark"] .col[data-estado="proceso"] { --c: #FFB020; }
+html[data-theme="dark"] .col[data-estado="revision"] { --c: #BF40FF; }
+html[data-theme="dark"] .col[data-estado="terminada"] { --c: #39FF14; }
+html[data-theme="dark"] .col {
+  --c-bg: color-mix(in srgb, var(--c) 10%, #070B14);
+  border-color: color-mix(in srgb, var(--c) 55%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--c) 18%, transparent);
+}
+html[data-theme="dark"] .col.drop-over { background: color-mix(in srgb, var(--c) 22%, #070B14); }
+html[data-theme="dark"] .modal-backdrop { background: rgba(0, 0, 0, .75); }
+html[data-theme="dark"] .modal-x { color: var(--d-muted); }
+
+/* ---------- Organigrama (Equipo) ---------- */
+html[data-theme="dark"] .org-node.rol-jefe { background: rgba(0, 229, 255, .08); border-color: var(--neon); box-shadow: 0 0 14px rgba(0, 229, 255, .3); }
+html[data-theme="dark"] .org-node.rol-subjefe { background: rgba(191, 64, 255, .08); border-color: #BF40FF; box-shadow: 0 0 14px rgba(191, 64, 255, .3); }
+html[data-theme="dark"] .org-node.rol-empleado { background: rgba(57, 255, 20, .06); border-color: #39FF14; box-shadow: 0 0 12px rgba(57, 255, 20, .25); }
+html[data-theme="dark"] .rol-jefe .role-badge { background: var(--neon); color: #04121C; }
+html[data-theme="dark"] .rol-subjefe .role-badge { background: #BF40FF; }
+html[data-theme="dark"] .rol-empleado .role-badge { background: #39FF14; color: #04121C; }
+html[data-theme="dark"] .org-stem,
+html[data-theme="dark"] .org-branch::before,
+html[data-theme="dark"] .org-branch::after { background: rgba(0, 229, 255, .55); }
+html[data-theme="dark"] .summary-total .big-icon { background: rgba(0, 229, 255, .14); color: var(--neon); }
+html[data-theme="dark"] .summary-row .dot.jefe { background: var(--neon); box-shadow: 0 0 8px var(--neon); }
+html[data-theme="dark"] .summary-row .dot.subjefe { background: #BF40FF; box-shadow: 0 0 8px #BF40FF; }
+html[data-theme="dark"] .summary-row .dot.empleado { background: #39FF14; box-shadow: 0 0 8px #39FF14; }
+html[data-theme="dark"] .dept-filter select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+html[data-theme="dark"] :is(.dept-filter svg, .dept-item .d-icon, .dept-item .d-chevron) { color: #fff; }
+
+/* ---------- Iconos SVG con trazos fijos ---------- */
+html[data-theme="dark"] :is(.panel-title svg, .versions-title svg) { stroke: #fff; }
+html[data-theme="dark"] :is(.search-box svg, .date-cell svg, .size-cell svg) { stroke: var(--d-muted); }
+html[data-theme="dark"] :is(.info-icon, .dz-icon) { stroke: var(--neon); color: var(--neon); }
+html[data-theme="dark"] .back-circle { background: rgba(0, 229, 255, .14); box-shadow: inset 0 0 0 1px var(--neon); }
+html[data-theme="dark"] .back-circle svg { stroke: var(--neon); }
+html[data-theme="dark"] .modal-body .toggle-pass { color: var(--d-muted); }
+html[data-theme="dark"] .action-btn { color: #fff; }
+html[data-theme="dark"] .action-btn:hover { color: var(--neon); border-color: var(--neon); }
+html[data-theme="dark"] #tablaVersionesBody td[style] { color: var(--d-muted) !important; }
+
+/* ---------- Iconos PNG: negro -> blanco, azul -> neón ---------- */
+html[data-theme="dark"] :is(.row-icon, .rc-icon, .card-icon, .task-meta img:not(.meta-avatar)) {
+  filter: brightness(0) invert(1);
+  opacity: 1;
+}
+html[data-theme="dark"] :is(img[src*="Android.png"].card-icon, .section-icon, .header-title-icon) {
+  filter: brightness(0) saturate(100%) invert(76%) sepia(78%) saturate(1700%) hue-rotate(147deg) brightness(104%) drop-shadow(0 0 6px rgba(0, 229, 255, .7));
+}
+html[data-theme="dark"] .grafiti { opacity: .35; }
+
+/* ---------- Avatares: trazo neón según el color del icono ---------- */
+html[data-theme="dark"] img[src*="avatar1.png"] { box-shadow: 0 0 0 2px #39FF14, 0 0 14px rgba(57, 255, 20, .75); }
+html[data-theme="dark"] img[src*="avatar2.png"] { box-shadow: 0 0 0 2px #E6EDF7, 0 0 14px rgba(230, 237, 247, .65); }
+html[data-theme="dark"] img[src*="avatar3.png"] { box-shadow: 0 0 0 2px #BF40FF, 0 0 14px rgba(191, 64, 255, .75); }
+html[data-theme="dark"] img[src*="avatar4.png"] { box-shadow: 0 0 0 2px #00B8FF, 0 0 14px rgba(0, 184, 255, .75); }
+html[data-theme="dark"] :is(img.user-avatar, img.tm-avatar)[src*="usuario.png"] { box-shadow: 0 0 0 2px var(--neon), 0 0 14px rgba(0, 229, 255, .7); }
+html[data-theme="dark"] :is(.user-avatar, .tm-avatar, .table-avatar, .meta-avatar, .node-avatar, .avatar-item img, .avatars img, .assign-opt img, .comment img) { background-color: var(--d-surface); }
+html[data-theme="dark"] :is(.avatar-item img, .avatars img, .avatars .more) { border-color: var(--d-surface); }
+html[data-theme="dark"] .avatar-check { border-color: var(--d-bg); box-shadow: 0 0 10px #00FF09; }
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb { background: rgba(0, 229, 255, .35); }
