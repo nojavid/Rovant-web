@@ -671,6 +671,22 @@ img[src*="equipo.png"].rc-icon {
   font-size: 14px;
   cursor: default;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Icono de check del botón ya seleccionado */
+.btn-selected .check-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* Texto "Seleccionado" del botón: visible en PC/tablet, oculto en móvil */
+.btn-selected .btn-selected-text {
+  margin-left: 6px;
+  display: inline-block;
 }
 
 /* ============================================================
@@ -679,7 +695,7 @@ img[src*="equipo.png"].rc-icon {
 .custom-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.8); 
+  background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
@@ -990,7 +1006,7 @@ img[src*="equipo.png"].rc-icon {
   }
 
   .card-apk { min-height: 250px; }
-  
+
   /* Ajuste para que los apks en movil se vean bien */
   .apk-item {
     flex-direction: column;
@@ -1001,6 +1017,30 @@ img[src*="equipo.png"].rc-icon {
   .btn-select, .btn-selected {
     width: 100%;
     text-align: center;
+  }
+
+  /* En móvil el APK ya seleccionado muestra solo el icono del check */
+  .btn-selected {
+    width: auto;
+    align-self: flex-end;
+    padding: 8px 12px;
+  }
+
+  /* En móvil se oculta el texto "Seleccionado" y solo queda el check */
+  .btn-selected .btn-selected-text {
+    display: none;
+  }
+
+  .btn-selected .check-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* En móvil, la versión y el check quedan en una sola línea */
+  .apk-item.apk-active {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
   }
 }
 

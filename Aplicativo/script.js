@@ -93,7 +93,7 @@ async function cargarApksDisponibles() {
             <span class="apk-meta">${sizeMB} • ${fecha}</span>
           </div>
           <button class="${btnClass}" onclick="seleccionarApk(${apk.id})" ${esActivo ? 'disabled' : ''}>
-            ${btnText}
+            ${esActivo ? '<svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 12.5 10 17.5 19 7.5"></polyline></svg><span class="btn-selected-text">Seleccionado</span>' : 'Seleccionar'}
           </button>
         </div>
       `;

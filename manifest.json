@@ -1,0 +1,38 @@
+{
+  "name": "Rovant",
+  "short_name": "Rovant",
+  "description": "Rovant es una aplicación de movilidad que permite reportar y ver en tiempo real lo que pasa en las vías, con fotos y audios geolocalizados.",
+  "lang": "es",
+  "dir": "ltr",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "categories": [
+    "navigation",
+    "travel",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "Iconos/Logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "Iconos/Logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "Iconos/Logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
