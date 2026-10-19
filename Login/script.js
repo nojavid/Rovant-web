@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            sessionStorage.setItem('rovant_recien_logueado', '1');   // sonido + popup de bienvenida
             sessionStorage.setItem('rovant_user', JSON.stringify({
                 id: data.id,
                 nombre: data.nombre,

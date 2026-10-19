@@ -4,7 +4,7 @@
 function fitStage() {
   const stage = document.getElementById('stage');
   const baseW = 1512;
-  const baseH = 1200;
+  const baseH = 1300;
 
   if (window.innerWidth <= 768) {
     stage.style.transform = 'none';
@@ -164,6 +164,7 @@ async function cargarConfiguracion() {
 
     if (!data) {
       console.log('ℹ️ No hay configuración guardada aún');
+      actualizarPillPopup();
       if (sesion.avatar_file) marcarAvatarSeleccionado(sesion.avatar_file);
       return;
     }
@@ -192,11 +193,14 @@ async function cargarConfiguracion() {
       if (pill) pill.textContent = data.tema;
     }
 
-    if (data.notificaciones) {
+    {
+      // siempre desactivadas salvo que el miembro las haya activado y el navegador lo permita
+      const act = data.notificaciones === 'Sí' && RovantAvisos.permisoConcedido();
       const pill = document.querySelector('.card-3 .row[data-action="notificaciones"] .pill');
-      if (pill) pill.textContent = data.notificaciones;
+      if (pill) pill.textContent = act ? 'Sí' : 'No';
     }
 
+    actualizarPillPopup();
     sessionStorage.setItem('rovant_user', JSON.stringify(sesion));
     console.log('✅ Configuración cargada:', data);
   } catch (e) {
@@ -470,9 +474,30 @@ function abrirModalTema() {
   });
 }
 
+function actualizarPillPopup() {
+  const p = document.getElementById('pillPopup');
+  if (p && sesion) p.textContent = RovantAvisos.popupInicioActivo(sesion.id) ? 'Sí' : 'No';
+}
+
+function abrirModalPopupInicio() {
+  const actual = RovantAvisos.popupInicioActivo(sesion && sesion.id) ? 'Sí' : 'No';
+  abrirModal({
+    action: 'popup_inicio',
+    title: 'Aviso al iniciar sesión',
+    subtitle: 'Popup con tus tareas pendientes al entrar',
+    body: `
+      <label>Mostrar popup al iniciar sesión</label>
+      <div class="options">
+        <button type="button" class="option ${actual === 'Sí' ? 'selected' : ''}" data-value="Sí">Sí</button>
+        <button type="button" class="option ${actual === 'No' ? 'selected' : ''}" data-value="No">No</button>
+      </div>
+    `
+  });
+}
+
 function abrirModalNotificaciones() {
   const pill = document.querySelector('.card-3 .row[data-action="notificaciones"] .pill');
-  const actual = pill ? pill.textContent.trim() : 'Sí';
+  const actual = pill ? pill.textContent.trim() : 'No';
   abrirModal({
     action: 'notificaciones',
     title: 'Permiso de notificaciones',
@@ -498,6 +523,7 @@ document.querySelectorAll('.row.clickable').forEach(row => {
     if (action === 'password')       abrirModalPassword();
     if (action === 'tema')           abrirModalTema();
     if (action === 'notificaciones') abrirModalNotificaciones();
+    if (action === 'popup_inicio')   abrirModalPopupInicio();
   });
 });
 
@@ -622,7 +648,17 @@ modalSave.addEventListener('click', async () => {
     else if (accionActual === 'notificaciones') {
       const sel = document.querySelector('.modal-body .option.selected');
       if (!sel) { mostrarAviso('Sin selección', 'Selecciona una opción.'); return; }
-      const valor = sel.dataset.value;
+      let valor = sel.dataset.value;
+
+      if (valor === 'Sí') {
+        const permiso = await RovantAvisos.pedirPermiso();
+        if (permiso !== 'granted') {
+          valor = 'No';
+          mostrarAviso('Notificaciones bloqueadas', 'Debes aceptar el permiso de notificaciones del navegador para activarlas.');
+        } else {
+          RovantAvisos.sonarNotificacion();
+        }
+      }
 
       const { error } = await supabaseClient.from('configuracion_usuario').upsert(
         { user_id: sesion.id, notificaciones: valor, updated_at: new Date().toISOString() },
@@ -634,6 +670,15 @@ modalSave.addEventListener('click', async () => {
       if (pill) pill.textContent = valor;
 
       console.log('✅ Notificaciones actualizadas:', valor);
+      cerrarModal();
+    }
+
+    /* ---------- POPUP DE INICIO ---------- */
+    else if (accionActual === 'popup_inicio') {
+      const sel = document.querySelector('.modal-body .option.selected');
+      if (!sel) { mostrarAviso('Sin selección', 'Selecciona una opción.'); return; }
+      RovantAvisos.setPopupInicio(sesion.id, sel.dataset.value === 'Sí');
+      actualizarPillPopup();
       cerrarModal();
     }
 

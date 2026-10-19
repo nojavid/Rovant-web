@@ -102,8 +102,19 @@
              style="left:30px; top:115px; width:30px; height:30px;">
         <div class="row-title" style="left:78px; top:110px;">Notificaciones</div>
         <div class="row-desc"  style="left:78px; top:132px;">Gestiona permiso de notificaciones</div>
-        <div class="pill" style="top:130px;">Claro</div>
+        <div class="pill" style="top:130px;">No</div>
         <div class="row-arrow" style="top:130px;">&gt;</div>
+      </div>
+      <div class="divider" style="left:30px; top:180px; width:1080px;"></div>
+
+      <!-- Fila Aviso de inicio -->
+      <div class="row clickable" data-action="popup_inicio">
+        <img class="row-icon" src="../../Iconos/tarea.png" alt=""
+             style="left:30px; top:200px; width:30px; height:30px;">
+        <div class="row-title" style="left:78px; top:195px;">Aviso al iniciar sesión</div>
+        <div class="row-desc"  style="left:78px; top:217px;">Muestra un popup con tus tareas pendientes</div>
+        <div class="pill" style="top:215px;" id="pillPopup">Sí</div>
+        <div class="row-arrow" style="top:215px;">&gt;</div>
       </div>
 
     </div>
@@ -145,6 +156,7 @@
 <script src="../../Login/config.js"></script>
 
 <!-- Tu script -->
+<script src="../avisos.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

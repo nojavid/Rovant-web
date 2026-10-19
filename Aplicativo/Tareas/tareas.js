@@ -11,6 +11,12 @@ const COLUMNAS = [
   { estado: "revision",  nombre: "En revisión" },
   { estado: "terminada", nombre: "Terminadas" }
 ];
+const PRIORIDADES = [
+  { v: "alta",  n: "Alta" },
+  { v: "media", n: "Media" },
+  { v: "baja",  n: "Baja" }
+];
+const RANGO_PRIO = { alta: 0, media: 1, baja: 2 };
 const ETIQUETAS = ["Frontend", "Backend", "QA", "Security", "DevOps", "Docs", "Diseño"];
 
 // Se llenan desde Supabase
@@ -36,6 +42,8 @@ function aviso(msg, error = true) {
 }
 function errorDb(e) {
   console.error(e);
+  const faltaCol = e && (e.code === "42703" || e.code === "PGRST204" || /prioridad/.test(e.message || ""));
+  if (faltaCol) return aviso("Falta la columna de prioridad. Ejecuta Aplicativo/Tareas/prioridad.sql en el SQL Editor de Supabase.");
   const falta = e && (e.code === "PGRST205" || /relation .* does not exist/.test(e.message || ""));
   aviso(falta
     ? "Faltan las tablas de tareas en Supabase. Ejecuta Aplicativo/Tareas/tareas.sql en el SQL Editor."
@@ -43,7 +51,7 @@ function errorDb(e) {
 }
 
 const aTarea = (r, coms) => ({
-  id: r.id, t: r.titulo, tag: r.etiqueta, e: r.estado,
+  id: r.id, t: r.titulo, tag: r.etiqueta, e: r.estado, p: RANGO_PRIO[r.prioridad] !== undefined ? r.prioridad : "media",
   av: [...new Set(r.asignados || [])].filter(id => EQUIPO.some(m => String(m.id) === String(id))),
   f: r.fecha || "", d: r.dias || 1,
   com: (coms || []).map(c => ({
@@ -105,7 +113,58 @@ function suscribirTiempoReal() {
 }
 
 async function refrescar() {
-  try { await cargarTareas(); aviso(""); renderTablero(); } catch (e) { errorDb(e); }
+  try {
+    const antes = TAREAS;
+    await cargarTareas();
+    aviso(""); renderTablero();
+    notificarCambios(antes, TAREAS);
+  } catch (e) { errorDb(e); }
+}
+
+/* ---------- Notificaciones (solo si el miembro las activó en Configuración) ---------- */
+let notiActivas = false;
+let ultimaAccionPropia = 0;
+const marcarPropio = () => { ultimaAccionPropia = Date.now(); };
+
+async function cargarPreferenciaNoti() {
+  const u = usuarioSesion();
+  if (!u || !u.id) return;
+  const { data } = await supabaseClient.from("configuracion_usuario")
+    .select("notificaciones").eq("user_id", u.id).maybeSingle();
+  notiActivas = !!data && data.notificaciones === "Sí" && RovantAvisos.permisoConcedido();
+}
+
+function notificarCambios(antes, ahora) {
+  if (!notiActivas || !antes.length && !ahora.length) return;
+  const yo = String((usuarioSesion() || {}).id);
+  const mias = t => t.av.some(a => String(a) === yo);
+  const propio = Date.now() - ultimaAccionPropia < 4000;
+  const avisos = [];
+  const nombreCol = e => (COLUMNAS.find(c => c.estado === e) || {}).nombre || e;
+
+  ahora.forEach(t => {
+    const a = antes.find(x => x.id === t.id);
+    if (!a) {
+      if (!propio && mias(t)) avisos.push(["Nueva tarea para ti", t.t]);
+      return;
+    }
+    // comentarios de otras personas en tareas mías
+    if (mias(t)) {
+      t.com.filter(c => !a.com.some(x => x.id === c.id) && String(c.uid) !== yo)
+        .forEach(c => avisos.push([`${c.n} comentó en "${t.t}"`, c.txt]));
+    }
+    if (propio) return;
+    if (mias(t) && !mias(a)) avisos.push(["Te asignaron una tarea", t.t]);
+    else if (mias(t)) {
+      if (t.e !== a.e) avisos.push([`Tarea movida a ${nombreCol(t.e)}`, t.t]);
+      else if (t.p !== a.p) avisos.push(["Cambió la prioridad", `${t.t}: ${t.p}`]);
+      else if (t.t !== a.t || t.f !== a.f || t.d !== a.d || t.tag !== a.tag) avisos.push(["Tarea actualizada", t.t]);
+    }
+  });
+  if (!propio) antes.filter(a => mias(a) && !ahora.some(t => t.id === a.id))
+    .forEach(a => avisos.push(["Tarea eliminada", a.t]));
+
+  avisos.slice(0, 3).forEach(([t, b]) => RovantAvisos.notificar(t, b));
 }
 
 function esc(s) {
@@ -124,7 +183,7 @@ function cardTarea(x) {
   return `
     <article class="card-tarea" data-id="${x.id}">
       <h3 class="ct-title">${esc(x.t)}</h3>
-      <span class="tag tag-${esc(x.tag)}">${esc(x.tag)}</span>
+      <div class="ct-tags"><span class="tag tag-${esc(x.tag)}">${esc(x.tag)}</span><span class="prio prio-${x.p}">${PRIORIDADES.find(p => p.v === x.p).n}</span></div>
       <div class="ct-row">
         <div class="avatars">${avatares}</div>
         <div class="ct-date"><b>${esc(fmtFecha(x.f))}</b><br>${fmtDias(x.d)}</div>
@@ -141,7 +200,8 @@ function cardTarea(x) {
 
 function renderTablero() {
   document.getElementById("board").innerHTML = COLUMNAS.map(col => {
-    const items = TAREAS.filter(x => x.e === col.estado);
+    const items = TAREAS.filter(x => x.e === col.estado)
+      .sort((a, b) => RANGO_PRIO[a.p] - RANGO_PRIO[b.p]);   // alta arriba, baja abajo (estable)
     return `
       <div class="col" data-estado="${col.estado}">
         <div class="col-head">
@@ -205,6 +265,7 @@ function inicializarArrastre() {
       const previo = t.e;
       t.e = c.dataset.estado;
       renderTablero();
+      marcarPropio();
       supabaseClient.from("tareas_rovant")
         .update({ estado: t.e, updated_at: new Date().toISOString() }).eq("id", t.id)
         .then(({ error }) => { if (error) { t.e = previo; renderTablero(); errorDb(error); } });
@@ -252,6 +313,7 @@ function confirmar(titulo, texto) {
 
 async function borrarTarea(id) {
   if (!await confirmar("Eliminar tarea", "¿Seguro que quieres eliminar esta tarea y sus comentarios? Esta acción no se puede deshacer.")) return false;
+  marcarPropio();
   const { error } = await supabaseClient.from("tareas_rovant").delete().eq("id", id);
   if (error) { errorDb(error); return false; }
   TAREAS = TAREAS.filter(x => x.id !== id);
@@ -396,12 +458,13 @@ function abrirModal(id) {
   comEditando = -1;
   borrador = t
     ? { ...t, av: [...t.av], com: t.com.map(c => ({ ...c })) }
-    : { id: null, t: "", tag: ETIQUETAS[0], e: "iniciar", av: [], f: new Date().toISOString().slice(0, 10), d: 1, com: [] };
+    : { id: null, t: "", tag: ETIQUETAS[0], e: "iniciar", p: "media", av: [], f: new Date().toISOString().slice(0, 10), d: 1, com: [] };
 
   document.getElementById("modalTitulo").textContent = editando ? "Detalle de tarea" : "Nueva tarea";
   document.getElementById("fTitulo").value = borrador.t;
   document.getElementById("fTag").value = borrador.tag;
   document.getElementById("fEstado").value = borrador.e;
+  document.getElementById("fPrioridad").value = borrador.p;
   document.getElementById("fFecha").value = borrador.f;
   document.getElementById("fDias").value = borrador.d;
   document.getElementById("fNuevoComentario").value = "";
@@ -424,6 +487,7 @@ function cerrarModal() {
 function inicializarModal() {
   const $ = id => document.getElementById(id);
   $("fTag").innerHTML = ETIQUETAS.map(t => `<option>${t}</option>`).join("");
+  $("fPrioridad").innerHTML = PRIORIDADES.map(p => `<option value="${p.v}">${p.n}</option>`).join("");
   $("fEstado").innerHTML = COLUMNAS.map(c => `<option value="${c.estado}">${c.nombre}</option>`).join("");
 
   $("btnNuevaTarea").addEventListener("click", () => abrirModal(null));
@@ -443,6 +507,7 @@ function inicializarModal() {
     borrador.av = borrador.av.includes(n) ? borrador.av.filter(x => x !== n) : [...borrador.av, n];
     renderAsignados();
     if (editando) {
+      marcarPropio();
       const { error } = await supabaseClient.from("tareas_rovant")
         .update({ asignados: borrador.av, updated_at: new Date().toISOString() }).eq("id", borrador.id);
       if (error) return errorDb(error);
@@ -499,12 +564,13 @@ function inicializarModal() {
     if (!titulo) return;
     if (!borrador.av.length) return avisoModal("Selecciona al menos un miembro para guardar la tarea.");
     const campos = {
-      titulo, etiqueta: $("fTag").value, estado: $("fEstado").value,
+      titulo, etiqueta: $("fTag").value, estado: $("fEstado").value, prioridad: $("fPrioridad").value,
       fecha: $("fFecha").value || null,
       dias: Math.max(1, parseInt($("fDias").value, 10) || 1),
       asignados: borrador.av
     };
     $("btnGuardar").disabled = true;
+    marcarPropio();
     try {
       if (editando) {
         const { error } = await supabaseClient.from("tareas_rovant")
@@ -617,6 +683,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     await cargarEquipo();
     renderHeaderUsuario();
+    await cargarPreferenciaNoti();
     await cargarTareas();
     renderTablero();
   } catch (e) { errorDb(e); }

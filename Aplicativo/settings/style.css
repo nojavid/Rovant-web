@@ -20,7 +20,7 @@ html, body {
 #stage {
   position: relative;
   width: 1280px;
-  height: 1200px;
+  height: 1300px;
   background-color: #EFF7FE;
   transform-origin: top center;
   flex-shrink: 0;
@@ -129,7 +129,7 @@ html, body {
 }
 .card-1 { left: 110px; top: 420px;  width: 1140px; height: 230px; }
 .card-2 { left: 110px; top: 680px;  width: 1140px; height: 250px; }
-.card-3 { left: 110px; top: 950px;  width: 1140px; height: 190px; }
+.card-3 { left: 110px; top: 950px;  width: 1140px; height: 275px; }
 
 /* ==================== FILAS ==================== */
 .row-icon {
