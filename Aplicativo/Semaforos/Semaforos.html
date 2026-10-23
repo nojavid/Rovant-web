@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rovant - Semáforos</title>
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="../../Iconos/Logo.png">
+<link rel="stylesheet" href="style.css">
+
+<!-- Cliente de Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="../theme.css">
+<script src="../theme.js"></script>
+</head>
+<body>
+
+  <div class="app-layout">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-drag-handle" id="sidebarDragHandle">
+        <span class="drag-line"></span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="../Aplicativo.html" class="nav-item" data-page="inicio">
+          <img src="../../Iconos/casa.png" alt="Inicio" class="nav-icon">
+          <span class="nav-text">Inicio</span>
+        </a>
+        <a href="../Upgrade/Upgrade.html" class="nav-item" data-page="upgrade">
+          <img src="../../Iconos/ventana.png" alt="Upgrade APK" class="nav-icon">
+          <span class="nav-text">Upgrade APK</span>
+        </a>
+        <a href="../Tareas/Tareas.html" class="nav-item" data-page="tareas">
+          <img src="../../Iconos/tarea.png" alt="Tareas" class="nav-icon">
+          <span class="nav-text">Tareas</span>
+        </a>
+        <a href="../Equipo/Equipo.html" class="nav-item" data-page="equipo">
+          <img src="../../Iconos/equipo.png" alt="Equipo" class="nav-icon">
+          <span class="nav-text">Equipo</span>
+        </a>
+        <a href="Semaforos.html" class="nav-item active" data-page="semaforos">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="7" y="2" width="10" height="20" rx="3"></rect>
+            <circle cx="12" cy="7" r="1.5"></circle>
+            <circle cx="12" cy="12" r="1.5"></circle>
+            <circle cx="12" cy="17" r="1.5"></circle>
+          </svg>
+          <span class="nav-text">Semáforos</span>
+        </a>
+        <a href="../settings/settings.html" class="nav-item" data-page="setting">
+          <img src="../../Iconos/settings.png" alt="Setting" class="nav-icon">
+          <span class="nav-text">Setting</span>
+        </a>
+        <a href="#" class="nav-item" data-page="cerrar" id="btnCerrarSesion">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span class="nav-text">Cerrar Sesión</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <img src="../../Iconos/Rovant-blanco.png" alt="Rovant" class="footer-logo">
+        <p class="footer-text">Movilidad control y<br>productividad en un solo lugar</p>
+      </div>
+    </aside>
+
+    <!-- ===== CONTENIDO CENTRAL ===== -->
+    <main class="main-content">
+      <div class="user-info" id="userInfoToggle">
+        <img src="../../Iconos/Avatar/avatar1.png" alt="Usuario" class="user-avatar" id="headerAvatar">
+        <div class="user-text">
+          <span class="user-name" id="headerUserName">Cargando...</span>
+          <span class="user-role" id="headerUserRole">...</span>
+        </div>
+        <svg class="user-chevron" id="userChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+
+      <div class="section-header">
+        <svg class="section-icon section-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="7" y="2" width="10" height="20" rx="3"></rect>
+          <circle cx="12" cy="7" r="1.5"></circle>
+          <circle cx="12" cy="12" r="1.5"></circle>
+          <circle cx="12" cy="17" r="1.5"></circle>
+        </svg>
+        <div class="section-titles">
+          <h1 class="section-title">Semáforos</h1>
+          <p class="section-subtitle">Tiempos registrados, agrupados por localidad y vía</p>
+        </div>
+      </div>
+
+      <div class="sem-dashboard">
+        <section class="panel">
+          <div class="sem-toolbar">
+            <div class="sem-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="search" id="buscador" placeholder="Buscar calle, localidad o coordenadas...">
+            </div>
+            <div class="dept-filter">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <select id="filtroLocalidad"><option value="">Todas las localidades</option></select>
+            </div>
+            <button class="btn-sec" id="btnRecargar" type="button">Recargar</button>
+          </div>
+          <div class="sem-status" id="semStatus"></div>
+          <div class="sem-list" id="semList">
+            <div class="org-loading">Cargando semáforos...</div>
+          </div>
+        </section>
+
+        <div class="side-col">
+          <section class="panel">
+            <div class="panel-title">Resumen</div>
+            <div class="summary-total">
+              <div class="big-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="3"/><circle cx="12" cy="7" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="17" r="1.5"/></svg>
+              </div>
+              <div>
+                <div class="summary-count" id="totalSemaforos">0</div>
+                <div class="summary-label">Semáforos</div>
+              </div>
+            </div>
+            <div class="summary-row">Registros de tiempo<b id="totalRegistros">0</b></div>
+            <div class="summary-row">Localidades<b id="totalLocalidades">0</b></div>
+            <div class="summary-row">Vías<b id="totalCalles">0</b></div>
+          </section>
+          <section class="panel">
+            <div class="panel-title">Localidades</div>
+            <div class="dept-list" id="locList"></div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ===== MODAL EDITAR ===== -->
+  <div class="modal-back" id="modalEditar" hidden>
+    <form class="modal" id="formEditar">
+      <h2>Editar registro</h2>
+      <div class="modal-fields" id="camposEditar"></div>
+      <p class="modal-error" id="errorEditar"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn-sec" id="btnCancelarEditar">Cancelar</button>
+        <button type="submit" class="btn-pri" id="btnGuardarEditar">Guardar</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===== MODAL ELIMINAR ===== -->
+  <div class="modal-back" id="modalEliminar" hidden>
+    <div class="modal">
+      <h2>Eliminar registro</h2>
+      <p id="textoEliminar"></p>
+      <p class="modal-error" id="errorEliminar"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn-sec" id="btnCancelarEliminar">Cancelar</button>
+        <button type="button" class="btn-del" id="btnConfirmarEliminar">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="menu-overlay" id="menuOverlay"></div>
+
+  <script src="../../Login/config.js"></script>
+  <script src="../avisos.js"></script>
+  <script src="../notif-tareas.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
