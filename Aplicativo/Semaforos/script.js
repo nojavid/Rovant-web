@@ -216,9 +216,167 @@ function filaHTML(r) {
     </td></tr>`;
 }
 
+/* ============================================================
+   PENDIENTES DE VALIDAR (mañana / tarde / noche)
+   La franja sale de una columna franja/jornada/turno si existe;
+   si no, de la hora de creado_el.
+   ============================================================ */
+const FRANJAS = [
+  { id: "manana", nombre: "Mañana" },
+  { id: "tarde", nombre: "Tarde" },
+  { id: "noche", nombre: "Noche" }
+];
+
+function franjaDeRegistro(r) {
+  const col = columnas.find(c => ["franja", "jornada", "turno", "franja_horaria"].includes(normalizar(c)));
+  if (col && r[col]) {
+    const v = normalizar(r[col]);
+    if (v.startsWith("man")) return "manana";
+    if (v.startsWith("tar")) return "tarde";
+    if (v.startsWith("noc")) return "noche";
+  }
+  const d = new Date(r.creado_el || r.created_at);
+  if (isNaN(d)) return null;
+  const h = d.getHours();
+  if (h >= 5 && h < 12) return "manana";
+  if (h >= 12 && h < 18) return "tarde";
+  return "noche";
+}
+
+function renderPendientes() {
+  const cont = document.getElementById("valList");
+  const porSem = new Map();
+  filtrarRegistros().forEach(r => {
+    const k = claveSemaforo(r);
+    if (!porSem.has(k)) porSem.set(k, []);
+    porSem.get(k).push(r);
+  });
+
+  const pendientes = [], coordinados = [];
+  porSem.forEach((rows, k) => {
+    const franjas = {};
+    rows.forEach(r => {
+      const f = franjaDeRegistro(r);
+      if (f) (franjas[f] = franjas[f] || []).push(r);
+    });
+    const faltan = FRANJAS.filter(f => !franjas[f.id]);
+    (faltan.length ? pendientes : coordinados).push({ k, rows, franjas, faltan });
+  });
+
+  renderCarrusel("valList", "valContador", pendientes,
+    "Todos los semáforos tienen mañana, tarde y noche registradas.");
+  renderCarrusel("coordList", "coordContador", coordinados,
+    "Aún no hay semáforos con las tres franjas validadas.");
+}
+
+function renderCarrusel(idLista, idContador, items, textoVacio) {
+  const cont = document.getElementById(idLista);
+  if (!items.length) {
+    cont.innerHTML = `<div class="org-empty">${textoVacio}</div>`;
+    actualizarContadorValidar(cont, idContador);
+    return;
+  }
+
+  cont.innerHTML = items.map(({ k, rows, franjas, faltan }) => {
+    const u = ubicacionDeRegistro(rows[0]);
+    const [lat, lng] = k.split(",");
+    const celdas = FRANJAS.map(f => {
+      const regs = franjas[f.id];
+      if (!regs) return `<div class="val-franja falta">
+          <span class="val-franja-nombre">${f.nombre}</span>
+          <span class="val-falta">Por validar</span>
+        </div>`;
+      const lineas = regs.map(r => `<div class="val-tiempos">
+          ${r.direccion ? `<span class="val-dir">${escapeHtml(r.direccion)}</span>` : ""}
+          <span class="val-t rojo"><i></i>${escapeHtml(r.tiempo_rojo ?? "—")}<small>s</small></span>
+          <span class="val-t verde"><i></i>${escapeHtml(r.tiempo_verde ?? "—")}<small>s</small></span>
+        </div>`).join("");
+      return `<div class="val-franja ok">
+          <span class="val-franja-nombre">${f.nombre}</span>${lineas}
+        </div>`;
+    }).join("");
+    return `<div class="sem-card val-card">
+        <div class="val-head">
+          <div class="val-titulo">
+            <span class="val-calle">${escapeHtml(u.calle)}</span>
+            <span class="val-loc">${escapeHtml(u.localidad)}</span>
+          </div>
+          <a class="val-mapa" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${lat},${lng}" title="${escapeHtml(lat)}, ${escapeHtml(lng)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Ver en mapa
+          </a>
+        </div>
+        <div class="val-franjas">${celdas}</div>
+        ${faltan.length
+          ? `<div class="val-pie">Faltan: ${faltan.map(f => f.nombre.toLowerCase()).join(" · ")}</div>`
+          : `<div class="val-pie ok">Coordinado · mañana, tarde y noche validadas</div>`}
+      </div>`;
+  }).join("");
+  cont.scrollLeft = 0;
+  actualizarContadorValidar(cont, idContador);
+}
+
+function actualizarContadorValidar(cont, idContador) {
+  const n = cont.querySelectorAll(".val-card").length;
+  const i = n ? Math.min(n, Math.round(cont.scrollLeft / cont.clientWidth) + 1) : 0;
+  document.getElementById(idContador).textContent = n ? `${i} de ${n} · desliza para ver el siguiente` : "";
+}
+
+function inicializarCarruselValidar() {
+  inicializarCarrusel("valList", "valContador");
+  inicializarCarrusel("coordList", "coordContador");
+}
+
+function inicializarCarrusel(idLista, idContador) {
+  const cont = document.getElementById(idLista);
+  let down = false, moved = false, startX = 0, startScroll = 0, anim = 0;
+
+  const animarA = destino => {
+    cancelAnimationFrame(anim);
+    const inicio = cont.scrollLeft, dist = destino - inicio, dur = 450, t0 = performance.now();
+    cont.classList.add("arrastrando"); // sin snap mientras anima
+    const paso = ahora => {
+      const p = Math.min(1, (ahora - t0) / dur);
+      const e = 1 - Math.pow(1 - p, 3); // easeOutCubic
+      cont.scrollLeft = inicio + dist * e;
+      if (p < 1) anim = requestAnimationFrame(paso);
+      else cont.classList.remove("arrastrando");
+    };
+    anim = requestAnimationFrame(paso);
+  };
+
+  cont.addEventListener("scroll", () => actualizarContadorValidar(cont, idContador));
+  cont.addEventListener("mousedown", e => {
+    if (e.target.closest("a, button")) return;
+    cancelAnimationFrame(anim);
+    down = true; moved = false; startX = e.pageX; startScroll = cont.scrollLeft;
+    cont.classList.add("arrastrando");
+  });
+  window.addEventListener("mousemove", e => {
+    if (!down) return;
+    const dx = e.pageX - startX;
+    if (Math.abs(dx) > 3) moved = true;
+    cont.scrollLeft = startScroll - dx * 0.9; // leve amortiguación
+  });
+  window.addEventListener("mouseup", e => {
+    if (!down) return;
+    down = false;
+    const w = cont.clientWidth;
+    const base = Math.round(startScroll / w);
+    const dx = e.pageX - startX;
+    let idx = base;
+    if (Math.abs(dx) > w * 0.12) idx = dx < 0 ? base + 1 : base - 1;
+    const max = Math.max(0, cont.querySelectorAll(".val-card").length - 1);
+    idx = Math.max(0, Math.min(max, idx));
+    animarA(idx * (w + 12)); // 12 = gap
+  });
+  cont.addEventListener("dragstart", e => e.preventDefault());
+}
+
 function renderTodo() {
   renderResumenYFiltro();
   renderLista();
+  renderPendientes();
 }
 
 function renderResumenYFiltro() {
@@ -386,8 +544,8 @@ async function confirmarEliminar() {
    EVENTOS
    ============================================================ */
 function inicializarEventos() {
-  document.getElementById("buscador").addEventListener("input", renderLista);
-  document.getElementById("filtroLocalidad").addEventListener("change", () => { renderResumenYFiltro(); renderLista(); });
+  document.getElementById("buscador").addEventListener("input", () => { renderLista(); renderPendientes(); });
+  document.getElementById("filtroLocalidad").addEventListener("change", () => { renderResumenYFiltro(); renderLista(); renderPendientes(); });
   document.getElementById("btnRecargar").addEventListener("click", cargarSemaforos);
 
   document.getElementById("locList").addEventListener("click", e => {
@@ -397,6 +555,7 @@ function inicializarEventos() {
     select.value = select.value === btn.dataset.loc ? "" : btn.dataset.loc;
     renderResumenYFiltro();
     renderLista();
+    renderPendientes();
   });
 
   const lista = document.getElementById("semList");
@@ -503,6 +662,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   inicializarMenuMovil();
   inicializarArrastreMenu();
   inicializarEventos();
+  inicializarCarruselValidar();
   cargarCacheGeo();
   cargarHeaderUsuario();
   await cargarSemaforos();

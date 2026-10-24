@@ -48,6 +48,10 @@
           </svg>
           <span class="nav-text">Semáforos</span>
         </a>
+        <a href="../Usuarios/Usuarios.html" class="nav-item" data-page="usuarios">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span class="nav-text">Usuarios registrados</span>
+        </a>
         <a href="../settings/settings.html" class="nav-item" data-page="setting">
           <img src="../../Iconos/settings.png" alt="Setting" class="nav-icon">
           <span class="nav-text">Setting</span>
@@ -133,6 +137,20 @@
             <div class="dept-list" id="locList"></div>
           </section>
         </div>
+
+        <section class="panel panel-validar">
+          <div class="panel-title">Pendientes de validar</div>
+          <p class="val-sub">Semáforos a los que les falta registrar la mañana, la tarde o la noche. Se muestra el tiempo rojo y verde guardado en cada franja.</p>
+          <div class="val-list" id="valList"></div>
+          <div class="val-contador" id="valContador"></div>
+        </section>
+
+        <section class="panel panel-validar">
+          <div class="panel-title">Semáforos coordinados</div>
+          <p class="val-sub">Semáforos con mañana, tarde y noche validadas: sus tiempos de rojo y verde ya están confirmados para cada franja.</p>
+          <div class="val-list" id="coordList"></div>
+          <div class="val-contador" id="coordContador"></div>
+        </section>
       </div>
     </main>
   </div>

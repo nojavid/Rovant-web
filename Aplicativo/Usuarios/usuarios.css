@@ -1,0 +1,44 @@
+/* Árbol de usuarios por jerarquía (reutiliza el layout de ../Semaforos/style.css) */
+.usr-dashboard { grid-template-columns: minmax(0, 1fr); }
+.usr-total { font-size: 13px; color: var(--s-muted); white-space: nowrap; }
+
+.arbol { display: flex; flex-direction: column; align-items: center; margin-top: 18px; overflow-x: auto; padding-bottom: 8px; }
+.arb-nivel { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.arb-etiqueta { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--s-muted); }
+.arb-fila { display: flex; justify-content: center; gap: 14px; }
+.arb-tallo { width: 1px; height: 26px; background: var(--s-border); margin: 10px 0 14px; }
+
+/* Conectores: línea horizontal sobre cada fila y bajada hacia cada tarjeta */
+.arb-nodo { position: relative; padding-top: 16px; }
+.arb-nodo::before { content: ""; position: absolute; top: 0; left: 50%; width: 1px; height: 16px; background: var(--s-border); }
+.arb-nodo::after { content: ""; position: absolute; top: 0; left: -7px; right: -7px; height: 1px; background: var(--s-border); }
+.arb-nodo:first-child::after { left: 50%; }
+.arb-nodo:last-child::after { right: 50%; }
+.arb-nodo:only-child::after { display: none; }
+
+.usr-item {
+  display: flex; align-items: center; gap: 12px; width: 270px; padding: 12px 14px;
+  border: 1px solid var(--s-border); border-radius: 12px; background: var(--s-surface-2);
+  transition: border-color .2s, background .2s;
+}
+.usr-item:hover { border-color: var(--s-accent); background: var(--s-hover); }
+.usr-avatar {
+  width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--s-accent); color: var(--s-accent-text); font-weight: 600; font-size: 14px;
+}
+.nivel-privilegio .usr-avatar { background: #7C5CF0; color: #fff; }
+.nivel-crack .usr-avatar { background: var(--s-verde); color: #fff; }
+.nivel-novato .usr-avatar { background: var(--s-muted); color: #fff; }
+.usr-datos { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.usr-nombre { font-size: 14.5px; font-weight: 600; color: var(--s-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.usr-correo { font-size: 12px; color: var(--s-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.usr-jerarquia {
+  margin-top: 6px; align-self: flex-start; max-width: 100%;
+  padding: 3px 8px; font-size: 11.5px; border: 1px solid var(--s-border); border-radius: 999px;
+  background: var(--s-surface); color: var(--s-muted); cursor: pointer;
+}
+.usr-jerarquia:hover { border-color: var(--s-accent); color: var(--s-text); }
+@media (max-width: 520px) { .usr-item { width: 240px; } }
+.usr-nombre { display: flex; align-items: center; gap: 5px; }
+.usr-insignia { width: 16px; height: 16px; flex-shrink: 0; color: #1D9BF0; }
