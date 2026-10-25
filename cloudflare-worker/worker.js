@@ -3,13 +3,14 @@
    GET  /apk/<archivo>.apk   -> descarga pública (adjunto)
    PUT  /apk/<archivo>.apk   -> subida (solo usuarios de Rovant)
    DELETE /apk/<archivo>.apk -> eliminar (solo usuarios de Rovant)
+   GET  /usage               -> bytes y archivos del bucket (solo usuarios de Rovant)
    POST /push/subscribe | /push/unsubscribe | /notify  -> ver push.js
    Bindings: BUCKET (R2). Variables: SUPABASE_URL, SUPABASE_ANON_KEY,
    ALLOWED_ORIGINS (opcional, separados por coma; por defecto "*")
    ============================================================ */
 import { guardarSuscripcion, quitarSuscripcion, procesarWebhook } from "./push.js";
 
-const MAX_BYTES = 50 * 1024 * 1024;
+const MAX_BYTES = 100 * 1024 * 1024; // tope de Cloudflare para el cuerpo de una petición (planes Free y Pro)
 const NOMBRE_VALIDO = /^[A-Za-z0-9._-]{1,200}\.apk$/;
 
 function cors(req, env) {
@@ -64,6 +65,18 @@ export default {
       return json(res, res.ok ? 200 : 400, h);
     }
 
+    // ----- Uso del bucket (para la página Almacenamiento) -----
+    if (url.pathname === "/usage" && req.method === "GET") {
+      if (!(await usuarioValido(req.headers.get("X-User-Id"), env))) return json({ error: "No autorizado" }, 401, h);
+      let bytes = 0, archivos = 0, cursor;
+      do {
+        const lote = await env.BUCKET.list({ cursor, limit: 1000 });
+        for (const o of lote.objects) { bytes += o.size; archivos++; }
+        cursor = lote.truncated ? lote.cursor : undefined;
+      } while (cursor);
+      return json({ bytes, archivos }, 200, h);
+    }
+
     const m = url.pathname.match(/^\/apk\/([^/]+)$/);
     if (!m) return json({ error: "No encontrado" }, 404, h);
     const nombre = decodeURIComponent(m[1]);
@@ -88,7 +101,7 @@ export default {
     if (req.method === "PUT") {
       if (!(await usuarioValido(req.headers.get("X-User-Id"), env))) return json({ error: "No autorizado" }, 401, h);
       const largo = Number(req.headers.get("Content-Length") || 0);
-      if (!largo || largo > MAX_BYTES) return json({ error: "El archivo supera el límite de 50 MB" }, 413, h);
+      if (!largo || largo > MAX_BYTES) return json({ error: "El archivo supera el límite de 100 MB" }, 413, h);
       if (await env.BUCKET.head(nombre)) return json({ error: "Ya existe un archivo con ese nombre" }, 409, h);
       await env.BUCKET.put(nombre, req.body, {
         httpMetadata: { contentType: "application/vnd.android.package-archive" }

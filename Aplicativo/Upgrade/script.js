@@ -333,7 +333,15 @@ async function eliminarApkConfirmado() {
   const btn = document.getElementById('confirmDelOk');
   btn.disabled = true; btn.textContent = 'Eliminando...';
   try {
-    // 1) archivo
+    // 1) registro primero: si la base de datos lo bloquea, el archivo no se toca.
+    // Sin permiso (RLS) Supabase no da error: borra 0 filas, por eso se pide devolver lo borrado.
+    const { data: borrados, error: dbErr } = await supabaseClient.from('apk_versions').delete().eq('id', v.id).select();
+    if (dbErr) throw dbErr;
+    if (!borrados || !borrados.length) {
+      throw new Error('Supabase no permitió borrar el registro (falta la política de DELETE en apk_versions). Ejecuta Aplicativo/Upgrade/apk_versions_permisos.sql en el SQL Editor.');
+    }
+
+    // 2) archivo
     if (v.file_path && v.file_path.startsWith('r2/')) {
       await cargarR2Config();
       const user = obtenerUsuarioLogueado();
@@ -351,10 +359,6 @@ async function eliminarApkConfirmado() {
       const { error: stErr } = await supabaseClient.storage.from('apks').remove([v.file_path]);
       if (stErr) throw stErr;
     }
-    // 2) registro
-    const { error: dbErr } = await supabaseClient.from('apk_versions').delete().eq('id', v.id);
-    if (dbErr) throw dbErr;
-
     cerrarConfirmEliminar();
     await cargarHistorialVersiones();
   } catch (error) {
@@ -445,7 +449,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function procesarSubidaAPK(archivo) {
   if (!archivo.name.endsWith('.apk')) return mostrarModal('Error', 'Solo se permiten archivos con extensión .apk', true);
-  if (archivo.size > 50 * 1024 * 1024) return mostrarModal('Error', 'El archivo supera el límite de 50 MB.', true);
+  if (archivo.size > 100 * 1024 * 1024) return mostrarModal('Error', 'El archivo supera el límite de 100 MB.', true);
 
   // --- ARREGLO DE NOMBRE ---
   // 1. Intentar sacarlo de la sesión

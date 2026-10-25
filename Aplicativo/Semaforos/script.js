@@ -541,12 +541,35 @@ async function confirmarEliminar() {
 }
 
 /* ============================================================
+   DESCARGAR EXCEL (respaldo de todos los registros, sin filtros)
+   ============================================================ */
+function descargarExcel() {
+  if (typeof XLSX === "undefined") { alert("No se pudo cargar la librería de Excel. Revisa tu conexión."); return; }
+  if (!registros.length) { alert("No hay semáforos para descargar."); return; }
+  const tieneLoc = columnas.some(c => normalizar(c) === "localidad");
+  const tieneCalle = columnas.some(c => ["calle", "via", "nombre_via", "street"].includes(normalizar(c)));
+  const filas = registros.map(r => {
+    const u = ubicacionDeRegistro(r);
+    const f = {};
+    if (!tieneLoc) f["localidad"] = u.pendiente ? "" : u.localidad;
+    if (!tieneCalle) f["calle"] = u.pendiente ? "" : u.calle;
+    columnas.forEach(c => { f[c] = r[c] ?? ""; });
+    return f;
+  });
+  const ws = XLSX.utils.json_to_sheet(filas);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Semaforos");
+  XLSX.writeFile(wb, `semaforos_respaldo_${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+/* ============================================================
    EVENTOS
    ============================================================ */
 function inicializarEventos() {
   document.getElementById("buscador").addEventListener("input", () => { renderLista(); renderPendientes(); });
   document.getElementById("filtroLocalidad").addEventListener("change", () => { renderResumenYFiltro(); renderLista(); renderPendientes(); });
   document.getElementById("btnRecargar").addEventListener("click", cargarSemaforos);
+  document.getElementById("btnExcel").addEventListener("click", descargarExcel);
 
   document.getElementById("locList").addEventListener("click", e => {
     const btn = e.target.closest(".dept-item");

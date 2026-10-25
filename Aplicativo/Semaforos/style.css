@@ -868,7 +868,8 @@ body {
   margin-top: 10px;
   align-items: start;
 }
-@media (max-width: 1100px) { .sem-dashboard { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) { .sem-dashboard { grid-template-columns: minmax(0, 1fr); } }
+.sem-dashboard > *, .side-col { min-width: 0; }
 
 .sem-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
 .sem-toolbar .dept-filter { min-width: 200px; }
@@ -1011,7 +1012,7 @@ html[data-theme="dark"] .sem-dashboard :is(.t-rojo, .t-verde, td.ok) { text-shad
 .sem-dashboard .icon-btn.del:hover { background: rgba(211, 47, 47, .12); border-color: var(--s-rojo); }
 
 /* Pendientes de validar */
-.panel-validar { grid-column: 1 / -1; }
+.panel-validar { grid-column: 1 / -1; min-width: 0; max-width: 100%; overflow: hidden; }
 .val-sub { margin: 4px 0 12px; font-size: 13px; color: var(--s-muted); }
 .val-list {
   display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory;
@@ -1019,8 +1020,8 @@ html[data-theme="dark"] .sem-dashboard :is(.t-rojo, .t-verde, td.ok) { text-shad
 }
 .val-list::-webkit-scrollbar { display: none; }
 .val-list.arrastrando { cursor: grabbing; scroll-snap-type: none; }
-.val-list > * { flex: 0 0 100%; scroll-snap-align: start; }
-.val-card { margin: 0; padding: 22px 24px 18px; display: flex; flex-direction: column; gap: 20px; border-radius: 14px; }
+.val-list > * { flex: 0 0 100%; min-width: 0; box-sizing: border-box; scroll-snap-align: start; }
+.val-card { margin: 0; padding: clamp(14px, 2vw, 22px) clamp(14px, 2.2vw, 24px) 16px; display: flex; flex-direction: column; gap: 20px; border-radius: 14px; }
 .val-contador { text-align: center; margin-top: 10px; font-size: 12px; letter-spacing: .02em; color: var(--s-muted); }
 
 .val-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -1054,9 +1055,14 @@ html[data-theme="dark"] .val-t i { box-shadow: 0 0 8px currentColor; }
 .val-pie { font-size: 12px; color: var(--s-muted); text-transform: capitalize; }
 .val-pie::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 8px; border-radius: 50%; background: var(--s-rojo); vertical-align: middle; }
 .val-pie.ok::before { background: var(--s-verde); }
+@media (max-width: 760px) {
+  .val-t { font-size: 18px; }
+  .val-franja { padding: 14px 10px 4px; }
+}
 @media (max-width: 520px) {
   .val-card { padding: 18px 16px 14px; }
-  .val-franjas { grid-template-columns: 1fr; }
+  .val-head { flex-wrap: wrap; gap: 10px; }
+  .val-franjas { grid-template-columns: minmax(0, 1fr); }
   .val-franja + .val-franja { border-left: 0; border-top: 1px solid var(--s-border); }
   .val-franja { padding-bottom: 12px; }
   .val-mapa { padding: 7px 10px; }
