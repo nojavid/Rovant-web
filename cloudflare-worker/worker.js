@@ -4,7 +4,9 @@
    PUT  /apk/<archivo>.apk   -> subida (solo usuarios de Rovant)
    DELETE /apk/<archivo>.apk -> eliminar (solo usuarios de Rovant)
    GET/PUT/DELETE /media/<archivo> -> imágenes, videos, audio y PDF de los anuncios (guardados como anuncios/<archivo>)
-   POST /ai/anuncio          -> DeepSeek redacta un anuncio con la tabla "cambios" (secreto DEEPSEEK_API_KEY)
+   POST /ai/anuncio          -> DeepSeek (secreto DEEPSEEK_API_KEY). Dos modos:
+        · {imagenes}  + X-User-Id                         -> borrador de anuncio con la tabla "cambios"
+        · {version_instalada, version_nueva, apk_nombre?} -> aviso corto de actualización (la app, sin sesión)
    GET  /usage             -> bytes y archivos del bucket (solo usuarios de Rovant)
    POST /push/subscribe | /push/unsubscribe | /notify  -> ver push.js
    Bindings: BUCKET (R2). Variables: SUPABASE_URL, SUPABASE_ANON_KEY,
@@ -128,6 +130,68 @@ Responde SOLO un JSON: {"titulo":"","texto":"","imagen":"","estilo":{"acento":""
   }
 }
 
+/* ---------- Aviso de actualización (lo pide la app instalada, sin sesión) ----------
+   POST /ai/anuncio  {version_instalada, version_nueva, apk_nombre?}  ->  {texto}
+   Como lo llama cualquier celular con la app, se protege así:
+   - formato de versión estricto (nada libre llega al prompt)
+   - version_nueva debe ser la APK activa de Supabase (apk_versions.is_active)
+   - máx. 10 peticiones por minuto por IP (binding AI_RATE_LIMITER)
+   - la respuesta se guarda 24 h en caché por par de versiones: DeepSeek se llama una vez por par
+   - DeepSeek tiene 8 s de plazo; si falla, la app muestra su texto de respaldo */
+const VERSION_VALIDA = /^v?\d{1,4}(\.\d{1,4}){0,3}$/;
+const APK_VALIDO = /^[A-Za-z0-9._-]{1,120}$/;
+const sinV = v => String(v).trim().replace(/^v/i, "");
+
+async function generarAvisoActualizacion(env, body) {
+  const instalada = String(body.version_instalada ?? "").trim();
+  const nueva = String(body.version_nueva ?? "").trim();
+  const apk = body.apk_nombre == null ? "" : String(body.apk_nombre).trim();
+  if (!VERSION_VALIDA.test(instalada) || !VERSION_VALIDA.test(nueva) || (apk && !APK_VALIDO.test(apk)))
+    return { status: 400, body: { error: "Versiones no válidas" } };
+
+  const sb = { apikey: env.SUPABASE_ANON_KEY, Authorization: `Bearer ${env.SUPABASE_ANON_KEY}` };
+  const v = await fetch(`${env.SUPABASE_URL}/rest/v1/apk_versions?select=version&is_active=eq.true&limit=1`, { headers: sb });
+  if (!v.ok) return { status: 502, body: { error: "No se pudo leer apk_versions (" + v.status + ")" } };
+  const activa = (await v.json())[0];
+  if (!activa || sinV(activa.version) !== sinV(nueva)) return { status: 400, body: { error: "Esa no es la versión vigente" } };
+
+  const cache = caches.default;
+  const clave = new Request(`https://cache.rovant.internal/ai-actualizar/${encodeURIComponent(sinV(instalada))}/${encodeURIComponent(sinV(nueva))}`);
+  const guardado = await cache.match(clave);
+  if (guardado) return { status: 200, body: await guardado.json() };
+
+  // novedades reales (si se pueden leer) para que "mejoras" no sea vacío
+  let novedades = [];
+  try {
+    const c = await fetch(`${env.SUPABASE_URL}/rest/v1/cambios?select=titulo&order=created_at.desc&limit=6`, { headers: sb });
+    if (c.ok) novedades = (await c.json()).map(x => x.titulo).filter(Boolean);
+  } catch (e) { /* sin novedades: el aviso sigue siendo válido */ }
+
+  const sistema = `Eres el asistente de Rovant. El usuario tiene la versión ${sinV(instalada)} y hay una nueva ${sinV(nueva)} disponible${apk ? ` (archivo ${apk})` : ""}. Escribe un anuncio corto (máximo 2 líneas), amigable y persuasivo, invitando al usuario a actualizar. Menciona que la nueva versión tiene mejoras.`
+    + (novedades.length ? ` Novedades reales para inspirarte, sin inventar otras: ${novedades.join("; ")}.` : "")
+    + ` Responde solo con el texto del anuncio, en español, sin comillas, sin títulos ni listas.`;
+
+  const ia = await fetch("https://api.deepseek.com/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.DEEPSEEK_API_KEY}` },
+    signal: AbortSignal.timeout(8000),
+    body: JSON.stringify({
+      model: "deepseek-chat",
+      temperature: 0.7,
+      max_tokens: 120,
+      messages: [{ role: "system", content: sistema }, { role: "user", content: "Escribe el anuncio." }]
+    })
+  });
+  if (!ia.ok) return { status: 502, body: { error: "DeepSeek respondió " + ia.status } };
+  const bruto = String((await ia.json()).choices?.[0]?.message?.content || "");
+  const texto = bruto.replace(/^["'“”]+|["'“”]+$/g, "").split("\n").map(l => l.trim()).filter(Boolean).slice(0, 2).join("\n").slice(0, 280);
+  if (!texto) return { status: 502, body: { error: "La IA devolvió un texto vacío" } };
+
+  const salida = { texto };
+  await cache.put(clave, new Response(JSON.stringify(salida), { headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=86400" } }));
+  return { status: 200, body: salida };
+}
+
 export default {
   async fetch(req, env) {
     const h = cors(req, env);
@@ -155,9 +219,27 @@ export default {
 
     // ----- Anuncio redactado por IA (DeepSeek) a partir de la tabla "cambios" -----
     if (url.pathname === "/ai/anuncio" && req.method === "POST") {
-      if (!(await usuarioValido(req.headers.get("X-User-Id"), env))) return json({ error: "No autorizado" }, 401, h);
-      if (!env.DEEPSEEK_API_KEY) return json({ error: "Falta el secreto DEEPSEEK_API_KEY en el Worker" }, 500, h);
+      // Límite por IP (binding AI_RATE_LIMITER, ver wrangler.toml) antes de gastar saldo de DeepSeek
+      if (env.AI_RATE_LIMITER) {
+        const ip = req.headers.get("cf-connecting-ip") || "unknown";
+        const { success } = await env.AI_RATE_LIMITER.limit({ key: ip });
+        if (!success) return json({ error: "Demasiadas peticiones. Intenta de nuevo en un minuto." }, 429, h);
+      } else {
+        console.warn("AI_RATE_LIMITER no está configurado: /ai/anuncio sin límite de peticiones");
+      }
       const body = await req.json().catch(() => ({}));
+      if (!env.DEEPSEEK_API_KEY) return json({ error: "Falta el secreto DEEPSEEK_API_KEY en el Worker" }, 500, h);
+      // Modo 1: aviso de actualización pedido por la app (público, ver generarAvisoActualizacion)
+      if (body.version_instalada !== undefined || body.version_nueva !== undefined) {
+        try {
+          const r = await generarAvisoActualizacion(env, body);
+          return json(r.body, r.status, h);
+        } catch (e) {
+          return json({ error: "No se pudo generar el aviso" }, 502, h);
+        }
+      }
+      // Modo 2: borrador de anuncio desde la tabla "cambios" (solo usuarios de Rovant)
+      if (!(await usuarioValido(req.headers.get("X-User-Id"), env))) return json({ error: "No autorizado" }, 401, h);
       const imagenes = (Array.isArray(body.imagenes) ? body.imagenes : []).slice(0, 50)
         .filter(i => i && typeof i.archivo === "string" && typeof i.descripcion === "string")
         .map(i => ({ archivo: i.archivo.slice(0, 120), descripcion: i.descripcion.slice(0, 300) }));
