@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rovant - Anuncios</title>
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="../../Iconos/Logo.png">
+<link rel="stylesheet" href="../Semaforos/style.css">
+<link rel="stylesheet" href="anuncios.css?v=4">
+
+<!-- Cliente de Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="../theme.css">
+<script src="../theme.js"></script>
+</head>
+<body>
+
+  <div class="app-layout">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-drag-handle" id="sidebarDragHandle">
+        <span class="drag-line"></span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="../Aplicativo.html" class="nav-item" data-page="inicio">
+          <img src="../../Iconos/casa.png" alt="Inicio" class="nav-icon">
+          <span class="nav-text">Inicio</span>
+        </a>
+        <a href="../Upgrade/Upgrade.html" class="nav-item" data-page="upgrade">
+          <img src="../../Iconos/ventana.png" alt="Upgrade APK" class="nav-icon">
+          <span class="nav-text">Upgrade APK</span>
+        </a>
+        <a href="../Tareas/Tareas.html" class="nav-item" data-page="tareas">
+          <img src="../../Iconos/tarea.png" alt="Tareas" class="nav-icon">
+          <span class="nav-text">Tareas</span>
+        </a>
+        <a href="../Equipo/Equipo.html" class="nav-item" data-page="equipo">
+          <img src="../../Iconos/equipo.png" alt="Equipo" class="nav-icon">
+          <span class="nav-text">Equipo</span>
+        </a>
+        <a href="../Semaforos/Semaforos.html" class="nav-item" data-page="semaforos">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="7" y="2" width="10" height="20" rx="3"></rect>
+            <circle cx="12" cy="7" r="1.5"></circle>
+            <circle cx="12" cy="12" r="1.5"></circle>
+            <circle cx="12" cy="17" r="1.5"></circle>
+          </svg>
+          <span class="nav-text">Semáforos</span>
+        </a>
+        <a href="../Usuarios/Usuarios.html" class="nav-item" data-page="usuarios">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span class="nav-text">Usuarios registrados</span>
+        </a>
+        <a href="../Almacenamiento/Almacenamiento.html" class="nav-item" data-page="almacenamiento">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
+          <span class="nav-text">Almacenamiento</span>
+        </a>
+        <a href="Anuncios.html" class="nav-item active" data-page="anuncios">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 8.5a5 5 0 0 1 0 7"/><path d="M19 6a9 9 0 0 1 0 12"/></svg>
+          <span class="nav-text">Anuncios</span>
+        </a>
+        <a href="../settings/settings.html" class="nav-item" data-page="setting">
+          <img src="../../Iconos/settings.png" alt="Setting" class="nav-icon">
+          <span class="nav-text">Setting</span>
+        </a>
+        <a href="#" class="nav-item" data-page="cerrar" id="btnCerrarSesion">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span class="nav-text">Cerrar Sesión</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <img src="../../Iconos/Rovant-blanco.png" alt="Rovant" class="footer-logo">
+        <p class="footer-text">Movilidad control y<br>productividad en un solo lugar</p>
+      </div>
+    </aside>
+
+    <!-- ===== CONTENIDO CENTRAL ===== -->
+    <main class="main-content">
+      <div class="user-info" id="userInfoToggle">
+        <img src="../../Iconos/Avatar/avatar1.png" alt="Usuario" class="user-avatar" id="headerAvatar">
+        <div class="user-text">
+          <span class="user-name" id="headerUserName">Cargando...</span>
+          <span class="user-role" id="headerUserRole">...</span>
+        </div>
+        <svg class="user-chevron" id="userChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+
+      <div class="section-header">
+        <svg class="section-icon section-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 8.5a5 5 0 0 1 0 7"/><path d="M19 6a9 9 0 0 1 0 12"/></svg>
+        <div class="section-titles">
+          <h1 class="section-title">Anuncios</h1>
+          <p class="section-subtitle">Publica textos, imágenes, videos, audios o PDF</p>
+        </div>
+      </div>
+
+      <div class="sem-dashboard an-dashboard">
+        <section class="panel">
+          <div class="sem-toolbar">
+            <div class="panel-title" style="margin:0">Anuncios publicados</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn-sec" id="btnGenerarIA" type="button">✨ Generar con IA</button>
+              <button class="btn-pri" id="btnNuevoAnuncio" type="button">+ Nuevo anuncio</button>
+            </div>
+          </div>
+          <p class="val-sub">Los archivos se guardan en Cloudflare R2. Selecciona un anuncio para dejarlo como el activo.</p>
+          <div class="anuncios-lista" id="anunciosLista"><p class="anuncios-vacio">Cargando anuncios...</p></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- ===== MODAL NUEVO ANUNCIO ===== -->
+  <div class="modal-back" id="anuncioOverlay" hidden>
+    <form class="modal an-modal" id="anuncioForm">
+      <h2>Nuevo anuncio</h2>
+      <div class="an-form-grid">
+      <div class="an-campos">
+        <label class="campo">Tipo
+          <select id="anTipo">
+            <option value="texto">Texto</option>
+            <option value="imagen">Imagen</option>
+            <option value="video">Video</option>
+            <option value="audio">Audio</option>
+            <option value="pdf">PDF</option>
+          </select>
+        </label>
+        <label class="campo">Título
+          <input type="text" id="anTitulo" maxlength="120" required placeholder="Ej: Nueva versión disponible">
+        </label>
+        <label class="campo">Mensaje <span id="anTextoOpc">(obligatorio)</span>
+          <textarea id="anTexto" rows="4" maxlength="2000" placeholder="Escribe el anuncio..."></textarea>
+        </label>
+        <label class="campo" id="anImagenWrap">Imagen del catálogo <small>(opcional)</small>
+          <select id="anImagen"></select>
+        </label>
+        <label class="campo" id="anArchivoWrap" hidden>Archivo <small id="anArchivoHint"></small>
+          <input type="file" id="anArchivo">
+        </label>
+      </div>
+      <div class="an-preview">
+        <span class="an-preview-label">Vista previa</span>
+        <div id="anPreview"></div>
+        <small class="an-preview-nota">Así se verá el anuncio al publicarlo.</small>
+      </div>
+      </div>
+      <p class="modal-error" id="anError"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn-sec" id="anCancelar">Cancelar</button>
+        <button type="button" class="btn-sec" id="anRegenerar" hidden>✨ Generar de nuevo</button>
+        <button type="submit" class="btn-pri" id="anGuardar">Guardar</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===== MODAL ELIMINAR ANUNCIO ===== -->
+  <div class="modal-back" id="anDelOverlay" hidden>
+    <div class="modal">
+      <h2>Eliminar anuncio</h2>
+      <p id="anDelText"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn-sec" id="anDelCancel">Cancelar</button>
+        <button type="button" class="btn-del" id="anDelOk">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL AVISO ===== -->
+  <div class="modal-back" id="anAviso" hidden>
+    <div class="modal">
+      <h2 id="anAvisoTitulo"></h2>
+      <p id="anAvisoTexto"></p>
+      <div class="modal-actions"><button type="button" class="btn-pri" id="anAvisoOk">Aceptar</button></div>
+    </div>
+  </div>
+
+  <div class="menu-overlay" id="menuOverlay"></div>
+
+  <script src="../../Login/config.js"></script>
+  <script src="../avisos.js"></script>
+  <script src="../notif-tareas.js"></script>
+  <script src="anuncios.js?v=4"></script>
+</body>
+</html>

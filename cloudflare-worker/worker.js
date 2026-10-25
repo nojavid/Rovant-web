@@ -3,7 +3,9 @@
    GET  /apk/<archivo>.apk   -> descarga pública (adjunto)
    PUT  /apk/<archivo>.apk   -> subida (solo usuarios de Rovant)
    DELETE /apk/<archivo>.apk -> eliminar (solo usuarios de Rovant)
-   GET  /usage               -> bytes y archivos del bucket (solo usuarios de Rovant)
+   GET/PUT/DELETE /media/<archivo> -> imágenes, videos, audio y PDF de los anuncios (guardados como anuncios/<archivo>)
+   POST /ai/anuncio          -> DeepSeek redacta un anuncio con la tabla "cambios" (secreto DEEPSEEK_API_KEY)
+   GET  /usage             -> bytes y archivos del bucket (solo usuarios de Rovant)
    POST /push/subscribe | /push/unsubscribe | /notify  -> ver push.js
    Bindings: BUCKET (R2). Variables: SUPABASE_URL, SUPABASE_ANON_KEY,
    ALLOWED_ORIGINS (opcional, separados por coma; por defecto "*")
@@ -11,6 +13,12 @@
 import { guardarSuscripcion, quitarSuscripcion, procesarWebhook } from "./push.js";
 
 const MAX_BYTES = 100 * 1024 * 1024; // tope de Cloudflare para el cuerpo de una petición (planes Free y Pro)
+const MEDIA_VALIDO = /^[A-Za-z0-9._-]{1,200}\.(png|jpe?g|gif|webp|mp4|webm|mov|mp3|ogg|wav|pdf)$/i;
+const MEDIA_TIPOS = {
+  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp",
+  mp4: "video/mp4", webm: "video/webm", mov: "video/quicktime",
+  mp3: "audio/mpeg", ogg: "audio/ogg", wav: "audio/wav", pdf: "application/pdf"
+};
 const NOMBRE_VALIDO = /^[A-Za-z0-9._-]{1,200}\.apk$/;
 
 function cors(req, env) {
@@ -40,6 +48,86 @@ async function usuarioValido(id, env) {
   return Array.isArray(filas) && filas.length === 1;
 }
 
+const ESTILOS = {
+  acento: ["verde", "azul", "naranja", "morado", "rojo", "gris"],
+  fuente: ["moderna", "elegante", "redondeada"],
+  alineacion: ["izquierda", "centro"],
+  fondo: ["limpio", "suave", "degradado"]
+};
+
+async function generarAnuncioIA(env, imagenes) {
+  const sb = { apikey: env.SUPABASE_ANON_KEY, Authorization: `Bearer ${env.SUPABASE_ANON_KEY}` };
+  const r = await fetch(`${env.SUPABASE_URL}/rest/v1/cambios?select=titulo,descripcion,categoria&order=created_at.desc&limit=40`, { headers: sb });
+  if (!r.ok) return { status: 502, body: { error: "No se pudo leer la tabla 'cambios' de Supabase (" + r.status + ")" } };
+  const cambios = await r.json();
+  if (!Array.isArray(cambios) || !cambios.length) return { status: 404, body: { error: "La tabla 'cambios' no tiene registros" } };
+
+  // variedad: un ángulo creativo al azar y los anuncios previos para no repetirlos
+  const enfoques = [
+    "historia corta: empieza por un momento real del usuario al conducir y cómo ahora es mejor",
+    "lo más importante primero: destaca UNA novedad estrella y deja las demás como apoyo",
+    "tono cercano y directo, como un mensaje de un amigo del equipo",
+    "sobrio y premium: frases cortas, pocas palabras, mucha elegancia",
+    "enfocado en seguridad y tranquilidad al volante",
+    "enfocado en ahorrar tiempo y evitar sorpresas en la ruta",
+    "celebrando: tono entusiasta pero sin exagerar ni signos de exclamación repetidos"
+  ];
+  const enfoque = enfoques[Math.floor(Math.random() * enfoques.length)];
+  let previos = [];
+  try {
+    const p = await fetch(`${env.SUPABASE_URL}/rest/v1/anuncios?select=titulo,estilo&order=created_at.desc&limit=5`, { headers: sb });
+    if (p.ok) previos = await p.json();
+  } catch (e) { /* sin historial: no pasa nada */ }
+
+  const sistema = `Eres el director creativo de anuncios de Rovant, una app de movilidad, control y productividad. Recibes una lista técnica de cambios y diseñas COMPLETO un anuncio profesional, minimalista y elegante para usuarios no técnicos, en español. Tú decides todo: título, texto, imagen, tipografía, color, alineación y fondo. Sé creativo y varía el enfoque; nada genérico.
+
+CONTENIDO
+- "titulo": específico a lo nuevo, máx. 70 caracteres (nada de "Novedades" o "Actualización" a secas).
+- "texto": primera línea = subtítulo breve (máx. 90 caracteres). Después, de 3 a 6 líneas, cada una un ítem con este formato exacto: "<emoji> <Encabezado corto> — <qué cambió y qué gana el usuario, máx. 15 palabras>". Un solo emoji por ítem que represente exactamente esa mejora (🗺️ mapa, 🚦 semáforos, ⚡ velocidad, 🔒 sesión, 🎙️ voz, 📍 ubicación, 🐞 errores, 🔔 avisos...). Separa líneas con \n. Sin párrafos largos, sin jerga técnica, sin IDs. Agrupa cambios parecidos y omite lo irrelevante. Poco texto, mucho aire.
+- "imagen": OBLIGATORIO. Elige SIEMPRE una imagen del catálogo (campo "archivo" EXACTO) y la que mejor combine con el mensaje. Nunca la dejes vacía.
+
+DISEÑO ("estilo", elige un valor de cada lista, el que mejor transmita el mensaje; explora todas las opciones y evita caer siempre en verde + moderna + izquierda: el color y la tipografía deben reflejar el tono del anuncio, p. ej. azul para confianza, naranja para atención, morado para algo especial, elegante para un tono premium)
+- "acento": ${ESTILOS.acento.join(" | ")}
+- "fuente": ${ESTILOS.fuente.join(" | ")}
+- "alineacion": ${ESTILOS.alineacion.join(" | ")}
+- "fondo": ${ESTILOS.fondo.join(" | ")}
+
+Responde SOLO un JSON: {"titulo":"","texto":"","imagen":"","estilo":{"acento":"","fuente":"","alineacion":"","fondo":""}}`;
+
+  const ia = await fetch("https://api.deepseek.com/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.DEEPSEEK_API_KEY}` },
+    body: JSON.stringify({
+      model: "deepseek-chat",
+      temperature: 0.9,
+      max_tokens: 900,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: sistema },
+        { role: "user", content: "Cambios recientes (JSON):\n" + JSON.stringify(cambios) + "\n\nCatálogo de imágenes (JSON):\n" + JSON.stringify(imagenes)
+          + "\n\nEnfoque creativo para ESTE anuncio: " + enfoque
+          + (previos.length ? "\n\nAnuncios anteriores (NO repitas sus títulos, ni su estilo, ni la misma imagen si hay otra que encaje):\n" + JSON.stringify(previos) : "") }
+      ]
+    })
+  });
+  if (!ia.ok) return { status: 502, body: { error: "DeepSeek respondió " + ia.status } };
+  try {
+    const out = JSON.parse((await ia.json()).choices[0].message.content);
+    const elegir = (k, v) => ESTILOS[k].includes(v) ? v : ESTILOS[k][0];
+    const est = out.estilo || {};
+    // la imagen es obligatoria: si la IA no eligió una válida, se usa la primera del catálogo
+    const imagen = imagenes.some(i => i.archivo === out.imagen) ? out.imagen : (imagenes[0] ? imagenes[0].archivo : "");
+    return { status: 200, body: {
+      titulo: String(out.titulo || "").slice(0, 120),
+      texto: String(out.texto || "").slice(0, 2000),
+      imagen,
+      estilo: { acento: elegir("acento", est.acento), fuente: elegir("fuente", est.fuente), alineacion: elegir("alineacion", est.alineacion), fondo: elegir("fondo", est.fondo) }
+    } };
+  } catch (e) {
+    return { status: 502, body: { error: "La IA devolvió una respuesta no válida" } };
+  }
+}
+
 export default {
   async fetch(req, env) {
     const h = cors(req, env);
@@ -65,6 +153,18 @@ export default {
       return json(res, res.ok ? 200 : 400, h);
     }
 
+    // ----- Anuncio redactado por IA (DeepSeek) a partir de la tabla "cambios" -----
+    if (url.pathname === "/ai/anuncio" && req.method === "POST") {
+      if (!(await usuarioValido(req.headers.get("X-User-Id"), env))) return json({ error: "No autorizado" }, 401, h);
+      if (!env.DEEPSEEK_API_KEY) return json({ error: "Falta el secreto DEEPSEEK_API_KEY en el Worker" }, 500, h);
+      const body = await req.json().catch(() => ({}));
+      const imagenes = (Array.isArray(body.imagenes) ? body.imagenes : []).slice(0, 50)
+        .filter(i => i && typeof i.archivo === "string" && typeof i.descripcion === "string")
+        .map(i => ({ archivo: i.archivo.slice(0, 120), descripcion: i.descripcion.slice(0, 300) }));
+      const res = await generarAnuncioIA(env, imagenes);
+      return json(res.body, res.status, h);
+    }
+
     // ----- Uso del bucket (para la página Almacenamiento) -----
     if (url.pathname === "/usage" && req.method === "GET") {
       if (!(await usuarioValido(req.headers.get("X-User-Id"), env))) return json({ error: "No autorizado" }, 401, h);
@@ -75,6 +175,41 @@ export default {
         cursor = lote.truncated ? lote.cursor : undefined;
       } while (cursor);
       return json({ bytes, archivos }, 200, h);
+    }
+
+    // ----- Archivos de anuncios (imagen, video, audio, PDF) -----
+    const mm = url.pathname.match(/^\/media\/([^/]+)$/);
+    if (mm) {
+      const nombre = decodeURIComponent(mm[1]);
+      if (!MEDIA_VALIDO.test(nombre)) return json({ error: "Nombre o tipo de archivo no permitido" }, 400, h);
+      const clave = "anuncios/" + nombre;
+      const tipo = MEDIA_TIPOS[nombre.split(".").pop().toLowerCase()];
+
+      if (req.method === "GET") {
+        const obj = await env.BUCKET.get(clave, { range: req.headers });   // admite Range (video)
+        if (!obj) return json({ error: "Archivo no encontrado" }, 404, h);
+        const cab = { ...h, "Content-Type": tipo, "Accept-Ranges": "bytes", "ETag": obj.httpEtag, "Cache-Control": "public, max-age=3600" };
+        if (obj.range) {
+          const ini = obj.range.offset ?? 0;
+          const fin = obj.range.length !== undefined ? ini + obj.range.length - 1 : obj.size - 1;
+          return new Response(obj.body, { status: 206, headers: { ...cab, "Content-Range": `bytes ${ini}-${fin}/${obj.size}`, "Content-Length": String(fin - ini + 1) } });
+        }
+        return new Response(obj.body, { headers: { ...cab, "Content-Length": String(obj.size) } });
+      }
+      if (req.method === "PUT") {
+        if (!(await usuarioValido(req.headers.get("X-User-Id"), env))) return json({ error: "No autorizado" }, 401, h);
+        const largo = Number(req.headers.get("Content-Length") || 0);
+        if (!largo || largo > MAX_BYTES) return json({ error: "El archivo supera el límite de 100 MB" }, 413, h);
+        if (await env.BUCKET.head(clave)) return json({ error: "Ya existe un archivo con ese nombre" }, 409, h);
+        await env.BUCKET.put(clave, req.body, { httpMetadata: { contentType: tipo } });
+        return json({ ok: true, key: nombre }, 201, h);
+      }
+      if (req.method === "DELETE") {
+        if (!(await usuarioValido(req.headers.get("X-User-Id"), env))) return json({ error: "No autorizado" }, 401, h);
+        await env.BUCKET.delete(clave);
+        return json({ ok: true }, 200, h);
+      }
+      return json({ error: "Método no permitido" }, 405, h);
     }
 
     const m = url.pathname.match(/^\/apk\/([^/]+)$/);
