@@ -3,7 +3,7 @@
    ============================================================ */
 const TABLA = "semaforos_tiempos";
 const CACHE_GEO = "rovant_geo_semaforos_v1";
-const COLS_OCULTAS_TABLA = ["id", "user_id", "lat", "lng"];
+const COLS_OCULTAS_TABLA = ["id", "user_id"];
 const COLS_SOLO_LECTURA = ["id", "user_id", "creado_el", "created_at", "updated_at", "actualizado_el"];
 const DIRECCIONES = ["recto", "izquierda", "derecha"];
 
@@ -50,6 +50,25 @@ function etiqueta(col) {
 function claveSemaforo(r) {
   return Number(r.lat).toFixed(5) + "," + Number(r.lng).toFixed(5);
 }
+
+/* ID por semáforo: se numera por coordenada, del más antiguo al más nuevo,
+   para que no cambie al agregar registros nuevos. */
+let idsSemaforo = new Map();
+
+function asignarIdsSemaforos() {
+  const primera = new Map();
+  registros.forEach(r => {
+    const k = claveSemaforo(r);
+    const t = new Date(r.creado_el || r.created_at).getTime() || 0;
+    if (!primera.has(k) || t < primera.get(k)) primera.set(k, t);
+  });
+  idsSemaforo = new Map();
+  [...primera.entries()]
+    .sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]))
+    .forEach(([k], i) => idsSemaforo.set(k, "S-" + String(i + 1).padStart(3, "0")));
+}
+
+function idDeSemaforo(k) { return idsSemaforo.get(k) || "—"; }
 
 /* ============================================================
    NAVEGACIÓN / SESIÓN
@@ -157,6 +176,7 @@ async function cargarSemaforos() {
     const set = new Set();
     registros.forEach(r => Object.keys(r).forEach(k => set.add(k)));
     columnas = [...set];
+    asignarIdsSemaforos();
     renderTodo();
     if (registros.some(r => ubicacionDeRegistro(r).pendiente)) {
       document.getElementById("semStatus").textContent = "Obteniendo localidad y calle desde las coordenadas...";
@@ -194,7 +214,7 @@ function filtrarRegistros() {
     const u = ubicacionDeRegistro(r);
     if (loc && u.localidad !== loc) return false;
     if (!q) return true;
-    return normalizar(`${u.localidad} ${u.calle} ${r.lat} ${r.lng} ${r.direccion || ""}`).includes(q);
+    return normalizar(`${idDeSemaforo(claveSemaforo(r))} ${u.localidad} ${u.calle} ${r.lat} ${r.lng} ${r.direccion || ""}`).includes(q);
   });
 }
 
@@ -298,7 +318,7 @@ function renderCarrusel(idLista, idContador, items, textoVacio) {
     return `<div class="sem-card val-card">
         <div class="val-head">
           <div class="val-titulo">
-            <span class="val-calle">${escapeHtml(u.calle)}</span>
+            <span class="val-calle">${escapeHtml(u.calle)} · ${escapeHtml(idDeSemaforo(k))}</span>
             <span class="val-loc">${escapeHtml(u.localidad)}</span>
           </div>
           <a class="val-mapa" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${lat},${lng}" title="${escapeHtml(lat)}, ${escapeHtml(lng)}">
@@ -424,7 +444,7 @@ function renderLista() {
         const [lat, lng] = k.split(",");
         return `<div class="sem-card">
             <div class="sem-card-head">
-              <span class="sem-coords">${escapeHtml(lat)}, ${escapeHtml(lng)}</span>
+              <span class="sem-coords"><strong>${escapeHtml(idDeSemaforo(k))}</strong> · ${escapeHtml(lat)}, ${escapeHtml(lng)}</span>
               <a class="sem-map" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${lat},${lng}">Ver en mapa</a>
             </div>
             <div class="tabla-wrap"><table class="sem-tabla"><thead><tr>${cabeceras}<th></th></tr></thead>
@@ -550,7 +570,7 @@ function descargarExcel() {
   const tieneCalle = columnas.some(c => ["calle", "via", "nombre_via", "street"].includes(normalizar(c)));
   const filas = registros.map(r => {
     const u = ubicacionDeRegistro(r);
-    const f = {};
+    const f = { id_semaforo: idDeSemaforo(claveSemaforo(r)) };
     if (!tieneLoc) f["localidad"] = u.pendiente ? "" : u.localidad;
     if (!tieneCalle) f["calle"] = u.pendiente ? "" : u.calle;
     columnas.forEach(c => { f[c] = r[c] ?? ""; });
